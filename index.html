@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎾 テニスクイズ道場</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --court: #2d7a3a;
+    --court-light: #3a9b4a;
+    --line: #e8f5e9;
+    --gold: #f5c518;
+    --accent: #ff6b35;
+    --bg: #0f1f0f;
+    --card: #1a2e1a;
+    --card2: #1f3520;
+    --text: #e8f5e9;
+    --muted: #8ab890;
+    --correct: #4caf50;
+    --wrong: #f44336;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ========== BG court lines ========== */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px),
+      linear-gradient(0deg, rgba(255,255,255,.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ========== SCREENS ========== */
+  .screen { display: none; position: relative; z-index: 1; }
+  .screen.active { display: block; }
+
+  /* ========== TOP ========== */
+  #screen-top {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px 60px;
+  }
+  #screen-top.active { display: flex; }
+
+  .logo-area {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+  .logo-icon {
+    font-size: clamp(48px, 10vw, 80px);
+    display: block;
+    animation: bounce 2s infinite;
+  }
+  @keyframes bounce {
+    0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)}
+  }
+  .logo-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(36px, 8vw, 72px);
+    letter-spacing: .08em;
+    color: var(--gold);
+    line-height: 1;
+    text-shadow: 0 0 30px rgba(245,197,24,.4);
+  }
+  .logo-sub {
+    font-size: clamp(12px, 2.5vw, 16px);
+    color: var(--muted);
+    margin-top: 6px;
+    letter-spacing: .15em;
+  }
+
+  .genre-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    width: 100%;
+    max-width: 860px;
+    margin-bottom: 32px;
+  }
+  .genre-card {
+    background: var(--card);
+    border: 1.5px solid rgba(255,255,255,.08);
+    border-radius: var(--radius);
+    padding: 22px 24px;
+    cursor: pointer;
+    transition: transform .2s, border-color .2s, box-shadow .2s;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+  .genre-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--gold);
+    box-shadow: 0 8px 30px rgba(245,197,24,.15);
+  }
+  .genre-icon { font-size: 36px; flex-shrink: 0; }
+  .genre-info .genre-name {
+    font-size: 17px; font-weight: 700;
+  }
+  .genre-info .genre-count {
+    font-size: 12px; color: var(--muted); margin-top: 3px;
+  }
+
+  .rules-box {
+    background: var(--card);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: var(--radius);
+    padding: 20px 28px;
+    max-width: 540px;
+    width: 100%;
+    font-size: 14px;
+    line-height: 1.9;
+    color: var(--muted);
+  }
+  .rules-box h3 { color: var(--text); margin-bottom: 10px; font-size: 15px; }
+
+  .btn-rank {
+    margin-top: 24px;
+    background: transparent;
+    border: 1.5px solid var(--muted);
+    color: var(--muted);
+    border-radius: 99px;
+    padding: 10px 28px;
+    cursor: pointer;
+    font-size: 14px;
+    font-family: inherit;
+    transition: border-color .2s, color .2s;
+  }
+  .btn-rank:hover { border-color: var(--gold); color: var(--gold); }
+
+  /* ========== RANKING ========== */
+  #screen-rank {
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 40px 20px;
+  }
+  #screen-rank.active { display: flex; }
+  .rank-title { font-size: 24px; font-weight: 900; margin-bottom: 20px; }
+  .rank-tabs { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
+  .rank-tab {
+    background: var(--card); border: 1px solid rgba(255,255,255,.1);
+    border-radius: 99px; padding: 7px 18px; cursor: pointer;
+    font-size: 13px; font-family: inherit; color: var(--muted);
+    transition: .2s;
+  }
+  .rank-tab.active { background: var(--gold); color: #000; font-weight: 700; border-color: var(--gold); }
+  .rank-list { width: 100%; max-width: 520px; }
+  .rank-item {
+    background: var(--card); border-radius: 10px; padding: 14px 20px;
+    margin-bottom: 8px; display: flex; align-items: center; gap: 14px;
+    border: 1px solid rgba(255,255,255,.06);
+  }
+  .rank-pos { font-size: 20px; font-weight: 900; width: 32px; color: var(--muted); }
+  .rank-pos.gold { color: #ffd700; }
+  .rank-pos.silver { color: #c0c0c0; }
+  .rank-pos.bronze { color: #cd7f32; }
+  .rank-name { flex: 1; font-weight: 700; }
+  .rank-score { font-size: 18px; font-weight: 900; color: var(--gold); }
+  .rank-empty { color: var(--muted); font-size: 14px; text-align: center; padding: 30px; }
+
+  /* ========== INTRO ========== */
+  #screen-intro {
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+  }
+  #screen-intro.active { display: flex; }
+  .intro-icon { font-size: 60px; margin-bottom: 16px; }
+  .intro-genre { font-size: clamp(22px, 5vw, 32px); font-weight: 900; margin-bottom: 8px; }
+  .intro-count { color: var(--muted); margin-bottom: 36px; font-size: 14px; }
+  .name-label { font-size: 14px; color: var(--muted); margin-bottom: 10px; }
+  .name-input {
+    background: var(--card); border: 1.5px solid rgba(255,255,255,.15);
+    border-radius: 10px; color: var(--text);
+    font-family: inherit; font-size: 18px; font-weight: 700;
+    padding: 12px 20px; width: 280px; text-align: center;
+    outline: none; transition: border-color .2s;
+  }
+  .name-input:focus { border-color: var(--gold); }
+  .btn-start {
+    margin-top: 28px;
+    background: var(--gold); color: #000;
+    border: none; border-radius: 99px;
+    padding: 14px 48px; font-size: 18px; font-weight: 900;
+    font-family: inherit; cursor: pointer;
+    transition: transform .15s, box-shadow .15s;
+    box-shadow: 0 4px 20px rgba(245,197,24,.35);
+  }
+  .btn-start:hover { transform: scale(1.04); box-shadow: 0 6px 28px rgba(245,197,24,.5); }
+  .btn-back {
+    margin-top: 16px;
+    background: transparent; border: none; color: var(--muted);
+    font-family: inherit; font-size: 14px; cursor: pointer;
+    text-decoration: underline;
+  }
+
+  /* ========== QUIZ ========== */
+  #screen-quiz {
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    padding: 0;
+  }
+  #screen-quiz.active { display: flex; }
+
+  .quiz-header {
+    background: var(--card);
+    padding: 14px 20px;
+    display: flex; align-items: center; gap: 12px;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    flex-shrink: 0;
+  }
+  .qh-progress { font-size: 13px; color: var(--muted); white-space: nowrap; }
+  .progress-bar-wrap {
+    flex: 1; background: rgba(255,255,255,.1);
+    border-radius: 99px; height: 6px; overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%; background: var(--gold);
+    border-radius: 99px; transition: width .3s;
+  }
+  .qh-score { font-weight: 900; font-size: 16px; white-space: nowrap; }
+
+  .timer-wrap {
+    background: var(--card2);
+    padding: 12px 20px;
+    display: flex; align-items: center; gap: 14px;
+    flex-shrink: 0;
+  }
+  .timer-label { font-size: 13px; color: var(--muted); }
+  .timer-bar-wrap {
+    flex: 1; background: rgba(255,255,255,.1);
+    border-radius: 99px; height: 10px; overflow: hidden;
+  }
+  .timer-bar-fill {
+    height: 100%; background: var(--correct);
+    border-radius: 99px; transition: width .1s linear, background .3s;
+  }
+  .timer-bar-fill.warn { background: #ff9800; }
+  .timer-bar-fill.danger { background: var(--wrong); }
+  .timer-num {
+    font-size: 20px; font-weight: 900;
+    width: 42px; text-align: right;
+  }
+
+  .quiz-body {
+    flex: 1; overflow-y: auto;
+    padding: 24px 20px 32px;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .q-type-badge {
+    font-size: 11px; font-weight: 700; letter-spacing: .1em;
+    border-radius: 99px; padding: 4px 14px;
+    margin-bottom: 16px;
+    display: inline-block;
+  }
+  .q-type-badge.multi { background: rgba(245,197,24,.15); color: var(--gold); }
+  .q-type-badge.truefalse { background: rgba(76,175,80,.15); color: #81c784; }
+
+  .q-text {
+    font-size: clamp(16px, 4vw, 22px); font-weight: 700;
+    text-align: center; line-height: 1.65;
+    max-width: 680px;
+    margin-bottom: 32px;
+  }
+
+  .choices {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    width: 100%; max-width: 620px;
+  }
+  .choices.two-col { grid-template-columns: 1fr 1fr; }
+  .choices.one-col  { grid-template-columns: 1fr; }
+
+  .choice-btn {
+    background: var(--card);
+    border: 2px solid rgba(255,255,255,.1);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: inherit;
+    font-size: clamp(14px, 3vw, 17px);
+    font-weight: 700;
+    padding: 18px 20px;
+    cursor: pointer;
+    text-align: center;
+    line-height: 1.4;
+    transition: border-color .15s, background .15s, transform .1s;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  .choice-btn:hover:not(:disabled) {
+    border-color: var(--gold);
+    background: rgba(245,197,24,.08);
+    transform: scale(1.02);
+  }
+  .choice-btn.correct { border-color: var(--correct) !important; background: rgba(76,175,80,.18) !important; }
+  .choice-btn.wrong   { border-color: var(--wrong) !important; background: rgba(244,67,54,.18) !important; }
+  .choice-btn:disabled { cursor: default; }
+
+  .tf-btn { font-size: 28px !important; padding: 24px !important; }
+
+  .feedback-bar {
+    margin-top: 20px;
+    max-width: 620px; width: 100%;
+    border-radius: var(--radius);
+    padding: 14px 20px;
+    font-size: 15px; font-weight: 700;
+    text-align: center;
+    display: none;
+  }
+  .feedback-bar.show { display: block; }
+  .feedback-bar.correct { background: rgba(76,175,80,.2); border: 1.5px solid var(--correct); color: #a5d6a7; }
+  .feedback-bar.wrong   { background: rgba(244,67,54,.2);  border: 1.5px solid var(--wrong);   color: #ef9a9a; }
+
+  .explanation-box {
+    margin-top: 12px;
+    max-width: 620px; width: 100%;
+    background: rgba(255,255,255,.04);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    font-size: 14px; line-height: 1.75;
+    color: var(--muted);
+    display: none;
+  }
+  .explanation-box.show { display: block; }
+
+  .btn-next {
+    margin-top: 20px;
+    background: var(--court-light); color: #fff;
+    border: none; border-radius: 99px;
+    padding: 13px 40px; font-size: 16px; font-weight: 700;
+    font-family: inherit; cursor: pointer;
+    display: none;
+    transition: background .15s;
+  }
+  .btn-next.show { display: inline-block; }
+  .btn-next:hover { background: var(--court); }
+
+  /* ========== RESULT ========== */
+  #screen-result {
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 40px 20px 60px;
+    text-align: center;
+  }
+  #screen-result.active { display: flex; }
+
+  .result-trophy { font-size: 64px; margin-bottom: 10px; animation: pop .4s ease-out; }
+  @keyframes pop { 0%{transform:scale(0)} 80%{transform:scale(1.15)} 100%{transform:scale(1)} }
+  .result-genre-name { font-size: 14px; color: var(--muted); margin-bottom: 20px; }
+
+  .score-big {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(72px, 15vw, 120px);
+    color: var(--gold);
+    line-height: 1;
+    text-shadow: 0 0 40px rgba(245,197,24,.4);
+  }
+  .score-label { font-size: 14px; color: var(--muted); margin-bottom: 28px; }
+
+  .stats-row {
+    display: flex; gap: 16px; justify-content: center;
+    flex-wrap: wrap; margin-bottom: 32px;
+  }
+  .stat-card {
+    background: var(--card); border-radius: 12px;
+    padding: 16px 24px; min-width: 110px;
+    border: 1px solid rgba(255,255,255,.07);
+  }
+  .stat-val { font-size: 28px; font-weight: 900; }
+  .stat-lbl { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .stat-val.gold { color: var(--gold); }
+  .stat-val.green { color: var(--correct); }
+
+  .wrong-list { width: 100%; max-width: 620px; text-align: left; margin-bottom: 32px; }
+  .wrong-title { font-size: 15px; font-weight: 700; margin-bottom: 12px;
+    color: var(--accent); border-bottom: 1px solid rgba(255,255,255,.1); padding-bottom: 8px; }
+  .wrong-item {
+    background: var(--card);
+    border-radius: 10px; padding: 14px 16px;
+    margin-bottom: 10px;
+    border-left: 3px solid var(--wrong);
+    font-size: 14px; line-height: 1.7;
+  }
+  .wrong-item .wi-q { font-weight: 700; margin-bottom: 6px; }
+  .wrong-item .wi-a { color: var(--correct); font-weight: 700; }
+  .wrong-item .wi-exp { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+  .result-btns { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  .btn-retry {
+    background: var(--gold); color: #000;
+    border: none; border-radius: 99px;
+    padding: 13px 40px; font-size: 16px; font-weight: 900;
+    font-family: inherit; cursor: pointer;
+    transition: transform .15s;
+  }
+  .btn-retry:hover { transform: scale(1.04); }
+  .btn-top-link {
+    background: transparent; border: 1.5px solid var(--muted);
+    color: var(--muted); border-radius: 99px;
+    padding: 13px 32px; font-size: 15px; font-weight: 700;
+    font-family: inherit; cursor: pointer;
+    transition: .2s;
+  }
+  .btn-top-link:hover { border-color: var(--text); color: var(--text); }
+
+  /* ========== TOAST ========== */
+  #toast {
+    position: fixed; bottom: 30px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--card2);
+    border-radius: 99px; padding: 10px 24px;
+    font-size: 15px; font-weight: 700;
+    opacity: 0; transition: .3s; z-index: 9999;
+    pointer-events: none; white-space: nowrap;
+    border: 1px solid rgba(255,255,255,.15);
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @media(max-width:480px) {
+    .genre-grid { grid-template-columns: 1fr; }
+    .choices.two-col { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== TOAST ===== -->
+<div id="toast"></div>
+
+<!-- ===== TOP ===== -->
+<section id="screen-top" class="screen active">
+  <div class="logo-area">
+    <span class="logo-icon">🎾</span>
+    <div class="logo-title">TENNIS QUIZ</div>
+    <div class="logo-sub">テニスクイズ道場</div>
+  </div>
+
+  <div class="genre-grid" id="genre-grid"></div>
+
+  <div class="rules-box">
+    <h3>📋 ルール</h3>
+    制限時間：120秒 ／ 各ジャンル10問ランダム出題<br>
+    ✅ 正解 → <strong style="color:var(--gold)">+10点</strong> ＋ 時間+5秒<br>
+    ❌ 不正解 → 減点なし ＋ 時間−5秒のペナルティ<br>
+    🏆 残り時間がそのままボーナス点に加算！<br>
+    【4択】と【○×】がランダムにミックスされます
+  </div>
+
+  <button class="btn-rank" onclick="showScreen('rank')">🏆 スコアランキングを見る</button>
+</section>
+
+<!-- ===== RANKING ===== -->
+<section id="screen-rank" class="screen">
+  <div class="rank-title">🏆 スコアランキング</div>
+  <div class="rank-tabs" id="rank-tabs"></div>
+  <div class="rank-list" id="rank-list"></div>
+  <button class="btn-rank" style="margin-top:20px" onclick="showScreen('top')">← トップへ</button>
+</section>
+
+<!-- ===== INTRO ===== -->
+<section id="screen-intro" class="screen">
+  <div class="intro-icon" id="intro-icon"></div>
+  <div class="intro-genre" id="intro-genre"></div>
+  <div class="intro-count" id="intro-count"></div>
+  <div class="name-label">プレーヤー名を入力</div>
+  <input class="name-input" id="player-name" type="text" placeholder="あなたの名前" maxlength="12">
+  <button class="btn-start" onclick="startQuiz()">スタート ▶</button>
+  <button class="btn-back" onclick="showScreen('top')">← 戻る</button>
+</section>
+
+<!-- ===== QUIZ ===== -->
+<section id="screen-quiz" class="screen">
+  <div class="quiz-header">
+    <span class="qh-progress" id="qh-progress">Q1 / 10</span>
+    <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-bar"></div></div>
+    <span class="qh-score" id="qh-score">0 pt</span>
+  </div>
+  <div class="timer-wrap">
+    <span class="timer-label">残り</span>
+    <div class="timer-bar-wrap"><div class="timer-bar-fill" id="timer-bar"></div></div>
+    <span class="timer-num" id="timer-num">120</span>
+    <span style="font-size:13px;color:var(--muted)">秒</span>
+  </div>
+  <div class="quiz-body">
+    <span class="q-type-badge" id="q-type-badge">4択</span>
+    <div class="q-text" id="q-text"></div>
+    <div class="choices" id="choices"></div>
+    <div class="feedback-bar" id="feedback-bar"></div>
+    <div class="explanation-box" id="explanation-box"></div>
+    <button class="btn-next" id="btn-next" onclick="nextQuestion()">次の問題へ →</button>
+  </div>
+</section>
+
+<!-- ===== RESULT ===== -->
+<section id="screen-result" class="screen">
+  <div class="result-trophy" id="result-trophy">🏆</div>
+  <div class="result-genre-name" id="result-genre-name"></div>
+  <div class="score-big" id="score-big">0</div>
+  <div class="score-label">TOTAL SCORE</div>
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-val green" id="res-correct">0</div><div class="stat-lbl">正解数</div></div>
+    <div class="stat-card"><div class="stat-val" id="res-wrong">0</div><div class="stat-lbl">不正解数</div></div>
+    <div class="stat-card"><div class="stat-val gold" id="res-bonus">+0</div><div class="stat-lbl">時間ボーナス</div></div>
+  </div>
+  <div class="wrong-list" id="wrong-list"></div>
+  <div class="result-btns">
+    <button class="btn-retry" onclick="retryQuiz()">もう一度挑戦</button>
+    <button class="btn-top-link" onclick="showScreen('top')">← トップへ</button>
+  </div>
+</section>
+
+<script>
+/* ===================== QUIZ DATA ===================== */
+const GENRES = [
+  {
+    id: 'rules',
+    name: 'ルール・基本知識',
+    icon: '📜',
+    questions: [
+      // ○×
+      {type:'tf', q:'テニスのサービスはデュースサイドから始まる。', a:true, exp:'最初のサービスは右側（デュースサイド）から始まります。'},
+      {type:'tf', q:'デュースとは3-3（40-40）のスコア状態のことである。', a:true, exp:'デュースは40-40の同点状態。その後2ポイント連続取得で勝利です。'},
+      {type:'tf', q:'フットフォルトはサービス失敗とはみなされない。', a:false, exp:'フットフォルトはフォルトとして扱われます。'},
+      {type:'tf', q:'タイブレークでは7ポイント先取した方がセットを取る。', a:true, exp:'通常タイブレークは7ポイント先取（2ポイント差必要）です。'},
+      {type:'tf', q:'ネットに触れたサービスがサービスボックスに入った場合、ノーカウントになる。', a:true, exp:'これを「レット」と言い、サービスをやり直します。'},
+      {type:'tf', q:'グランドスラムの試合では男子は5セットマッチである。', a:true, exp:'男子グランドスラムは5セットマッチ。女子は3セットマッチです。'},
+      {type:'tf', q:'コートエンドの選択は試合開始前のトスで決定する。', a:true, exp:'トスに勝った選手がサービス・コートエンド・レシーブを選択できます。'},
+      {type:'tf', q:'アウトボールをレシーバーが打ち返した場合、ポイントはサーバーのものになる。', a:false, exp:'レシーバーが打ち返してからアウトと判断された場合、打ち返した時点でボールを打った側が有効プレーとなります。'},
+      {type:'tf', q:'ダブルスでは両プレーヤーが交互にサービスを行う。', a:true, exp:'ダブルスでは各セット毎に、4人が順番にサービスを行います。'},
+      {type:'tf', q:'ウインブルドンはクレーコートで行われる。', a:false, exp:'ウインブルドンは天然芝コートです。クレーコートはフレンチオープンです。'},
+      {type:'tf', q:'テニスのネットはコート中央より両サイドの方が高い。', a:true, exp:'中央は91.4cm、ポスト部分は107cmです。'},
+      {type:'tf', q:'ファーストサービスがフォルトの場合、セカンドサービスを行う権利がある。', a:true, exp:'2回サービスが打てます。2回ともフォルトでダブルフォルトになります。'},
+      {type:'tf', q:'テニスのポイントカウントは0, 15, 30, 40の順に進む。', a:true, exp:'0=ラブ、1ポイント=15、2ポイント=30、3ポイント=40です。'},
+      {type:'tf', q:'ボールが相手コートにバウンドしてからネットに触れた場合もアウトになる。', a:false, exp:'一度相手コートにバウンドすればそのポイントは有効です。'},
+      // 4択
+      {type:'mc', q:'テニスコートの種類はいくつ？（主要3種類）', choices:['2種類','3種類','4種類','5種類'], a:1, exp:'ハードコート・クレーコート・芝コートの3種類が主要です。'},
+      {type:'mc', q:'ウインブルドンが開催される国はどこ？', choices:['フランス','アメリカ','イギリス','オーストラリア'], a:2, exp:'ウインブルドンはロンドン（イギリス）で開催されます。'},
+      {type:'mc', q:'フレンチオープンのコートサーフェスは？', choices:['ハードコート','クレーコート','芝コート','カーペットコート'], a:1, exp:'ローランギャロスで行われるフレンチオープンはレッドクレーです。'},
+      {type:'mc', q:'全米オープンが開催される都市はどこ？', choices:['ロサンゼルス','ニューヨーク','シカゴ','ラスベガス'], a:1, exp:'全米オープンはニューヨークのUSオープンナショナルテニスセンターで開催されます。'},
+      {type:'mc', q:'グランドスラム4大大会のうち正しい組み合わせは？', choices:['全豪・全仏・ウインブルドン・全米','全豪・全英・ウインブルドン・全米','全豪・全仏・全英・全米','全豪・全仏・ウインブルドン・全欧'], a:0, exp:'4大大会：全豪オープン・全仏オープン・ウインブルドン・全米オープンです。'},
+      {type:'mc', q:'テニスで「ラブ」とは何点のこと？', choices:['1点','2点','0点','特別ポイント'], a:2, exp:'「ラブ（Love）」は0点を意味します。語源は諸説あります。'},
+      {type:'mc', q:'サービスエースとは何？', choices:['サービスが線に当たること','レシーバーが触れられなかった入ったサービス','サービスをネットさせること','サービスでポイントを取ること'], a:1, exp:'レシーバーがラケットに当てられないまま入ったサービスをサービスエースといいます。'},
+      {type:'mc', q:'テニスで「ブレーク」とは？', choices:['ゲームを休憩すること','相手のサービスゲームを取ること','サービスをミスすること','ラケットが壊れること'], a:1, exp:'相手のサービスゲームを取ることを「ブレーク」といいます。'},
+      {type:'mc', q:'シングルスのコートの横幅（ベースラインの長さ）は？', choices:['7.21m','8.23m','10.97m','23.77m'], a:1, exp:'シングルスコートの横幅は8.23m、ダブルスは10.97mです。'},
+      {type:'mc', q:'テニスコートの奥行き（サービスラインからベースラインまで）は？', choices:['5.49m','6.40m','8.23m','11.89m'], a:0, exp:'サービスラインからベースラインまでは5.49m（約18フィート）です。'},
+      {type:'tf', q:'タイブレークでは最初にサービスをした選手が1ポイント打った後に交代する。', a:true, exp:'タイブレークでは1ポイント目後、以降2ポイントごとにサービスが交代します。'},
+      {type:'tf', q:'レットが宣告されても、その前のポイントは有効である。', a:true, exp:'レットはそのポイントのみやり直しとなり、前のポイントには影響しません。'},
+      {type:'mc', q:'テニスにおける「ノーアド」ルールとは？', choices:['デュース後の次のポイントでゲームが決まるルール','ノーカウントでサービスをやり直すルール','アドバンテージなしで進行するルール','ネットに触れた場合のルール'], a:0, exp:'ノーアドはデュース（40-40）後にどちらかが1ポイント取ると即ゲーム決定となるルールです。'},
+      {type:'mc', q:'テニスのセット数で「プロセット」とは何？', choices:['プロのみ使うセット','8ゲーム先取の1セット形式','6ゲーム先取の通常セット','3セットマッチ形式'], a:1, exp:'プロセットは8ゲーム先取（または10ゲーム先取）を1セットで行う短縮形式です。'},
+    ]
+  },
+  {
+    id: 'technique',
+    name: 'テクニック・戦術',
+    icon: '🏓',
+    questions: [
+      {type:'tf', q:'フォアハンドは利き手側で打つストロークである。', a:true, exp:'利き手側で打つストロークをフォアハンド、反対側をバックハンドといいます。'},
+      {type:'tf', q:'ボレーはノーバウンドでボールを打つ技術である。', a:true, exp:'ボレーはバウンドさせずにネット付近で打つ技術です。'},
+      {type:'tf', q:'スライスは回転を逆にかけるショットで落ちやすい。', a:false, exp:'スライスはバックスピン（逆回転）をかけるため、バウンドが低く滑るように進みます。'},
+      {type:'tf', q:'トップスピンをかけると、ボールは高く弾む。', a:true, exp:'トップスピン（順回転）はコートに当たると高く弾むため相手を後退させられます。'},
+      {type:'tf', q:'アプローチショットはネットに出るための布石となるショットである。', a:true, exp:'アプローチショットで相手を追い詰め、ネットプレーにつなぐ戦術です。'},
+      {type:'tf', q:'ドロップショットは深いところへ打ち込むショットである。', a:false, exp:'ドロップショットはネット際に短く落とすショットです。相手を前に引き出す戦術です。'},
+      {type:'tf', q:'ロブは高く弾道を上げて相手の頭上を越えるショットである。', a:true, exp:'相手がネットに詰めているときにロブで頭上を越す戦術が有効です。'},
+      {type:'tf', q:'サーブアンドボレーとはサービス後すぐにネット前に出る戦術である。', a:true, exp:'芝コートや速い展開を好むプレーヤーが多用する戦術です。'},
+      {type:'tf', q:'スマッシュはバックハンドで打つオーバーヘッドショットである。', a:false, exp:'スマッシュは通常フォアハンド（頭上）で力強く打ち込むショットです。'},
+      {type:'tf', q:'ダウンザラインとはサイドラインに沿って打つショットである。', a:true, exp:'ダウンザライン（DTL）はサイドライン沿いに打つ直線的なショットです。'},
+      // 4択
+      {type:'mc', q:'クロスコートショットとは？', choices:['サイドラインに沿って打つ','ネット越しに斜めに打つ','ベースライン後方から打つ','ネット際で打つ'], a:1, exp:'クロスコートはコートを斜めに横断するように打つショットです。'},
+      {type:'mc', q:'テニスの「センターセオリー」とは？', choices:['コートの中央に立つ','ダブルスでセンターを通してクロスを封じる','センターコートで試合する','ベースラインの中心に戻る'], a:1, exp:'ダブルスでセンターを狙うと、相手ペアのどちらが取るか迷わせ、アングルを消せます。'},
+      {type:'mc', q:'キックサービスの特徴は？', choices:['非常に速い','強いサイドスピンで跳ねる','バックスピンで低く滑る','ほぼ無回転で飛ぶ'], a:1, exp:'キック（またはトップスピン）サービスは大きく跳ね上がり、バックハンド側を攻めるのに有効です。'},
+      {type:'mc', q:'テニスで「クォリティボール」とは？', choices:['特別な試合球','深く・重く・コントロールされたショット','クオーターファイナルで使う球','製造クオリティが高いボール'], a:1, exp:'深くてコースが良い、攻守のバランスが取れた高品質なショットをクォリティボールといいます。'},
+      {type:'mc', q:'ムーンボールとは？', choices:['夜間プレーのボール','高く弧を描いて深く入るトップスピンショット','月面のように低く滑るショット','バランスが悪いボール'], a:1, exp:'ムーンボールは高い弾道で深く入るトップスピンショット。時間を稼ぎリズムを崩す効果があります。'},
+      {type:'mc', q:'テニスで「ファーストストライク」戦術とは？', choices:['最初のポイントを絶対取る','サービス後の最初のショットで主導権を握る','試合の最初のセットを取る','ファーストサービスを必ず入れる'], a:1, exp:'サービス後の1球目（リターンゲームならリターン後の1球目）で攻勢に立つ戦術です。'},
+      {type:'mc', q:'バックハンドスライスを使う最大の目的は？', choices:['ボールを速くする','時間を作り低く滑る球で相手のペースを乱す','回転量を最大化する','アウトにならないようにする'], a:1, exp:'スライスは低く滑るため相手が打ちにくく、自分が体勢を立て直す時間も作れます。'},
+      {type:'mc', q:'「ブレークポイント」とは何？', choices:['ゲームが壊れた状態','レシーバーがゲームを取れる局面のポイント','サービスがブレークダウンした状態','2セットアップのポイント'], a:1, exp:'レシーバー側がそのポイントを取るとゲームを取れる（ブレークする）場面をブレークポイントといいます。'},
+      {type:'mc', q:'テニスのネットプレーで最も重要な技術は？', choices:['バックハンドストローク','フットワーク（ポジショニング）','サービス速度','ベースラインプレー'], a:1, exp:'ネットプレーではポジション取りが最重要。T字ゾーンを押さえてパッシングを防ぎます。'},
+      {type:'mc', q:'「ウイナー」とは？', choices:['試合に勝った選手','相手が触れずに決まったショット','サービスエース以外のサービス','トーナメントの優勝者'], a:1, exp:'ウイナーとは相手がラケットに当てられずにポイントが決まったショットのことです。'},
+      {type:'tf', q:'ドライブボレーはボレーの一種でバウンドする前に打つ攻撃的なショットである。', a:true, exp:'ドライブボレーはバウンド前に打つ、ストローク感覚のボレーで攻撃的な球です。'},
+      {type:'tf', q:'スプリットステップはボールを打った後に行うフットワークである。', a:false, exp:'スプリットステップは相手がボールを打つ瞬間に踏み切る予備動作。次の動きへのスタートを速くします。'},
+      {type:'mc', q:'フラットショットの特徴は？', choices:['強いトップスピンがかかる','バックスピンで低く滑る','ほぼ無回転で直線的に飛ぶ','サイドスピンで曲がる'], a:2, exp:'フラットはほぼ無回転。打球が直線的に速く飛びますが、コントロールが難しいです。'},
+      {type:'mc', q:'テニスの「ハーフボレー」とは？', choices:['バウンド直後に打つショット','ネットの半分の高さで打つ','軽くタッチするボレー','スライスボレーのこと'], a:0, exp:'ハーフボレーはバウンド直後の球をすくい上げるように打つ難しいショットです。'},
+      {type:'mc', q:'テニスで「ポーチ」とは何？', choices:['コートの後方に下がること','ダブルスでクロスに出て相手の球を横取りすること','ネットタッチのこと','パッシングショットのこと'], a:1, exp:'ダブルスでネットマンが相手の返球コースに飛び出して横取りすることをポーチといいます。'},
+      {type:'mc', q:'サービスの「スライスサーブ」の特徴は？', choices:['強いトップスピンで跳ねる','サイドスピンで外側に曲がる','フラットで速い','バックスピンで低く滑る'], a:1, exp:'スライスサーブはサイドスピンにより右利き→デュース側で左に曲がり外へ引っ張ります。'},
+    ]
+  },
+  {
+    id: 'player',
+    name: '選手・歴史',
+    icon: '🏅',
+    questions: [
+      {type:'tf', q:'ロジャー・フェデラーはスイス出身である。', a:true, exp:'フェデラーはスイス出身。通算グランドスラム20勝を誇るレジェンドです。'},
+      {type:'tf', q:'ラファエル・ナダルはクレーコートのスペシャリストとして知られる。', a:true, exp:'ナダルはフレンチオープンを14回優勝（2023年時点）するクレーの王者です。'},
+      {type:'tf', q:'ノバク・ジョコビッチはアメリカ出身である。', a:false, exp:'ジョコビッチはセルビア出身。グランドスラム最多優勝記録を持ちます。'},
+      {type:'tf', q:'セリーナ・ウィリアムズはグランドスラムを23勝している。', a:true, exp:'セリーナは女子シングルスのグランドスラム最多優勝（23勝）を誇ります。'},
+      {type:'tf', q:'マルチナ・ナブラチロワはチェコスロバキア生まれである。', a:true, exp:'ナブラチロワはチェコスロバキア（現チェコ）出身で、後にアメリカ国籍を取得しました。'},
+      {type:'tf', q:'大坂なおみはハードコートを得意としている。', a:true, exp:'大坂なおみは全米・全豪オープン（共にハードコート）でグランドスラムを4回優勝しています。'},
+      {type:'tf', q:'ピート・サンプラスはグランドスラムを14勝している。', a:true, exp:'サンプラスは引退時点でグランドスラム14勝の記録を持っていました。'},
+      {type:'tf', q:'テニスの「BIG3」とはフェデラー・ナダル・マレーのことを指す。', a:false, exp:'BIG3はフェデラー・ナダル・ジョコビッチです。マレーは「BIG4」の一人です。'},
+      {type:'tf', q:'伊達公子は全仏オープンで優勝したことがある。', a:false, exp:'伊達公子は4大大会優勝歴はありませんが、世界ランキング4位まで上り詰めたレジェンドです。'},
+      {type:'tf', q:'アンドレ・アガシはキャリアゴールデンスラムを達成した。', a:true, exp:'アガシはグランドスラム全制覇+オリンピック金メダルのキャリアゴールデンスラム達成者です。'},
+      {type:'tf', q:'錦織圭は全米オープン2014年に決勝に進出した。', a:true, exp:'錦織は2014年全米オープン決勝でマリン・チリッチに敗れ準優勝。アジア人史上初の快挙でした。'},
+      // 4択
+      {type:'mc', q:'フレンチオープン最多優勝（男子）の選手は？', choices:['ロジャー・フェデラー','ノバク・ジョコビッチ','ラファエル・ナダル','ビョルン・ボルグ'], a:2, exp:'ナダルはフレンチオープンを14回優勝（2023年）。「クレーの王者」と呼ばれています。'},
+      {type:'mc', q:'ウインブルドン最多優勝（男子）の選手は？', choices:['ロジャー・フェデラー','ノバク・ジョコビッチ','ピート・サンプラス','ラファエル・ナダル'], a:0, exp:'フェデラーはウインブルドンを8回優勝（2003〜2017年）し、最多優勝記録を持っています。'},
+      {type:'mc', q:'「女王」と呼ばれたシュテフィ・グラフの出身国は？', choices:['オーストリア','スイス','ドイツ','チェコ'], a:2, exp:'グラフはドイツ出身。グランドスラム22勝とゴールデンスラムを達成した史上最強の一人です。'},
+      {type:'mc', q:'テニスで年間ゴールデンスラムを初めて達成したのは誰？', choices:['セリーナ・ウィリアムズ','マルチナ・ナブラチロワ','シュテフィ・グラフ','クリス・エバート'], a:2, exp:'グラフは1988年に4大大会+ソウル五輪金メダルを達成。史上唯一の年間ゴールデンスラムです。'},
+      {type:'mc', q:'ビョルン・ボルグの引退後の年齢（現役引退時）は？', choices:['24歳','26歳','28歳','30歳'], a:1, exp:'ボルグは26歳で現役引退。グランドスラム11勝（全仏6・ウインブルドン5）を達成しています。'},
+      {type:'mc', q:'大坂なおみが達成したグランドスラムの勝利数は？（2023年時点）', choices:['2回','3回','4回','5回'], a:2, exp:'大坂は全豪2回・全米2回の計4回グランドスラムを制覇しています（2023年時点）。'},
+      {type:'mc', q:'テニス史上「BIG4」として知られる4人のうち含まれないのは誰？', choices:['アンディ・マレー','スタン・ワウリンカ','ノバク・ジョコビッチ','ラファエル・ナダル'], a:1, exp:'BIG4はフェデラー・ナダル・ジョコビッチ・マレーです。ワウリンカはグランドスラム3勝の実力者ですがBIG4ではありません。'},
+      {type:'mc', q:'1970〜80年代の名プレーヤー「マッケンロー」はどこの出身？', choices:['カナダ','イギリス','アメリカ','スウェーデン'], a:2, exp:'ジョン・マッケンローはアメリカ出身。感情的なアピールと才能で人気を博した名選手です。'},
+      {type:'mc', q:'「テニスの王子様」と呼ばれた日本の選手は？', choices:['松岡修造','錦織圭','伊達公子','添田豪'], a:1, exp:'錦織圭は若くしてATPツアーで活躍し、そのプレースタイルから「テニスの王子様」と呼ばれることも。'},
+      {type:'mc', q:'オープン化（プロとアマの区別なし）以降初のグランドスラムは何年？', choices:['1965年','1968年','1972年','1975年'], a:1, exp:'1968年からオープン時代が始まり、プロもグランドスラムに参加できるようになりました。'},
+      {type:'mc', q:'「アイスマン」の愛称を持つスウェーデンの名選手は？', choices:['ステファン・エドベリ','ビョルン・ボルグ','マッツ・ビランデル','ヤニック・ノア'], a:1, exp:'ビョルン・ボルグは感情を表さないクールなプレースタイルから「アイスマン」と呼ばれました。'},
+      {type:'mc', q:'カルロス・アルカラスの出身国は？', choices:['アルゼンチン','スペイン','ブラジル','イタリア'], a:1, exp:'カルロス・アルカラスはスペイン出身。2022年に19歳で世界ランキング1位を達成した次世代の王者です。'},
+      {type:'tf', q:'アンドレア・アガシは4大大会すべてを制覇した「キャリアグランドスラム」達成者である。', a:true, exp:'アガシは全豪・全仏・ウインブルドン・全米すべてに優勝し、キャリアグランドスラムを達成しました。'},
+      {type:'mc', q:'女子テニス「WTA1000」大会で最も格が高いのは？', choices:['WTA250','WTA500','WTA1000','グランドスラム'], a:3, exp:'グランドスラムが最上位。その下にWTA1000→WTA500→WTA250の順です。'},
+      {type:'mc', q:'テニスで「ゴールデングランドスラム」を達成した女子選手（年間）は？', choices:['マルチナ・ナブラチロワ','クリス・エバート','シュテフィ・グラフ','ビーナス・ウィリアムズ'], a:2, exp:'グラフは1988年に4大大会すべてと五輪金メダルを獲得し、年間ゴールデングランドスラムを達成しました。'},
+    ]
+  },
+  {
+    id: 'equipment',
+    name: '用具・コート',
+    icon: '🎒',
+    questions: [
+      {type:'tf', q:'テニスボールの直径は約6.5〜6.7cmである。', a:true, exp:'公式規格ではボールの直径は6.54〜6.86cm、重さは56.0〜59.4gです。'},
+      {type:'tf', q:'テニスラケットの大きさに規定はない。', a:false, exp:'ラケットの長さは73.66cm以内、フレーム幅は31.75cm以内と規定されています。'},
+      {type:'tf', q:'ハードコートはバウンドが均一で速い特性がある。', a:true, exp:'ハードコートは弾みが一定でスピードが出やすく、オールラウンダー向きです。'},
+      {type:'tf', q:'クレーコートではボールが遅く高く弾む。', a:true, exp:'クレーはボールがコートに刺さるように遅くなり、バウンドが高くなります。パワーより持久力が必要です。'},
+      {type:'tf', q:'テニスボールは常に同じ色でなければならない。', a:false, exp:'ボールの色はITFが認定した色であれば複数使用可能。現在は黄色（オプティックイエロー）が主流です。'},
+      {type:'tf', q:'グリップの太さが細いほど、手首を使いやすくなる。', a:true, exp:'グリップが細いと手首の動きが大きくなり回転をかけやすくなりますが、安定性は落ちます。'},
+      {type:'tf', q:'ストリング（ガット）のテンションが高いほどコントロールしやすい。', a:true, exp:'テンションが高いとストリングがたわみにくく球離れが早いため、コントロールしやすくなります。'},
+      {type:'tf', q:'ダブルスのコートはシングルスよりも横幅が広い。', a:true, exp:'ダブルスコートの横幅は10.97m。シングルスの8.23mより広く「アレー」が加わります。'},
+      {type:'tf', q:'テニスシューズはサーフェスに関わらず同じものを使用してよい。', a:false, exp:'コートサーフェスによって適したソール形状が異なります。芝・クレー・ハードで専用シューズが推奨されます。'},
+      {type:'tf', q:'現代のラケットはほとんどがカーボン（グラファイト）製である。', a:true, exp:'現在はほぼカーボン（グラファイト）製。軽量で高強度、振動吸収性が高いです。'},
+      // 4択
+      {type:'mc', q:'テニスコートの長さ（全長）は？', choices:['20.12m','21.35m','23.77m','25.00m'], a:2, exp:'テニスコートの長さは23.77mです。ネットの高さは中央91.4cm。'},
+      {type:'mc', q:'テニスボールが黄色い主な理由は？', choices:['伝統','テレビ放映で見やすいため','汚れが目立つから','製造コストが安いから'], a:1, exp:'1972年にテレビ放映での視認性向上のために黄色（オプティックイエロー）が採用されました。'},
+      {type:'mc', q:'ストリングのテンションの単位は？', choices:['ニュートン','kg（ポンド）','パスカル','ジュール'], a:1, exp:'ストリングのテンションはkg（またはポンド）で表示します。一般的には45〜65ポンド程度です。'},
+      {type:'mc', q:'フレームが大きいラケット（オーバーサイズ）のメリットは？', choices:['コントロールが向上','スイートスポットが広くミスヒットに強い','振り抜きが良くなる','重量が軽くなる'], a:1, exp:'ラケット面積が大きいとスイートスポットが広がり、ミスヒットでもパワーを出しやすくなります。'},
+      {type:'mc', q:'テニスボールの加圧式（プレッシャーボール）の特徴は？', choices:['耐久性が非常に高い','弾みが良いが時間とともに落ちる','弾みが一定で長持ちする','練習専用ボール'], a:1, exp:'プレッシャーボールは内部に気体が封入されており、弾みが良い一方、時間とともに気圧が下がります。'},
+      {type:'mc', q:'ナチュラルガット（ストリング）の原料は？', choices:['シリコン','化学繊維','牛や羊の腸','炭素繊維'], a:2, exp:'ナチュラルガットは牛や羊の腸（主に牛の腸管）から作られており、反発性と打球感に優れています。'},
+      {type:'mc', q:'テニスラケットのグリップサイズ「G2」は日本基準で何インチ相当？', choices:['4インチ','4と1/4インチ','4と1/2インチ','4と3/4インチ'], a:1, exp:'日本基準のG2は海外（USサイズ）の4と1/4インチに相当します。'},
+      {type:'mc', q:'シングルスのサービスボックスはコートの何%を占める？', choices:['約15%','約21%','約28%','約35%'], a:2, exp:'サービスボックスは横4.115m×縦6.40mで2つあり、コート全面積の約28%を占めます。'},
+      {type:'mc', q:'ポリエステルストリングの特徴は？', choices:['柔らかく腕に優しい','硬くスピンをかけやすいが腕への負担大','弾みが良くパワーが出る','ナチュラル素材で環境に優しい'], a:1, exp:'ポリエステルは硬くスピンがかけやすいですが、反発性が低く腕・肘への負担が大きいです。'},
+      {type:'mc', q:'オーバーグリップテープの主な目的は？', choices:['ラケットの重量調整','グリップのすべり止めと感触調整','フレームの保護','ストリングの保護'], a:1, exp:'オーバーグリップは汗による滑り防止と、グリップサイズ・感触の微調整に使います。'},
+      {type:'tf', q:'テニスラケットのフレームに「鉛テープ」を貼ると打球感を変えられる。', a:true, exp:'鉛テープを貼ることでラケットの重量バランスや振動特性を調整できます。'},
+      {type:'mc', q:'テニスシューズのアウトソールの「へリンボーン」パターンはどのコートに最適？', choices:['ハードコート','クレーコート','芝コート','オムニコート'], a:1, exp:'ヘリンボーン（魚骨）パターンはクレーコートで優れたグリップとスライドを実現します。'},
+      {type:'mc', q:'テニスボールのノンプレッシャーボールの特徴は？', choices:['弾みが良い','耐久性が高く弾みが一定に長続きする','試合専用','安価だが品質が低い'], a:1, exp:'ノンプレッシャーボールは中が中空で耐久性が高く、練習や高地での使用に向いています。'},
+      {type:'mc', q:'アウトドアハードコートの代表的な素材は？', choices:['天然芝','砂入り人工芝','アクリル樹脂系コーティング','シリコン系'], a:2, exp:'アクリル樹脂系コーティングが多く、全米・全豪オープンでも採用されています。'},
+    ]
+  },
+  {
+    id: 'trivia',
+    name: '雑学・豆知識',
+    icon: '💡',
+    questions: [
+      {type:'tf', q:'テニスの試合でのチャレンジ（ホークアイ）は1セットに3回まで使える。', a:false, exp:'チャレンジは1セットにつき3回（または異議申し立て成功時はリセット）です（大会によって異なる）。'},
+      {type:'tf', q:'「ロブ」の語源はラテン語の「投げる」から来ている。', a:false, exp:'ロブの語源は英語の「lob（高く投げる）」です。'},
+      {type:'tf', q:'テニスのネットの素材は綿または合成繊維製である。', a:true, exp:'ルールではネットは綿・亜麻・合成繊維製のコードまたはロープで作ることが定められています。'},
+      {type:'tf', q:'テニスの語源はフランス語の「テネ（tenez）」から来ているという説がある。', a:true, exp:'サービス前に「受けよ」を意味するフランス語「tenez」と叫んだことが語源という説があります。'},
+      {type:'tf', q:'全豪オープンは毎年1月に開催される。', a:true, exp:'全豪オープンは毎年1月中旬〜2月上旬、メルボルンで開催されます。'},
+      {type:'tf', q:'テニスでは試合中に選手がコーチングを受けることが一切禁止されている。', a:false, exp:'WTAツアーではオンコート（コート上での）コーチングが認められています。ATPツアーは大会によって異なります。'},
+      {type:'tf', q:'ウインブルドンでは選手は白い服装を着ることが義務付けられている。', a:true, exp:'ウインブルドンは伝統的に全身ほぼ白の服装規定（ほぼ白）があります。'},
+      {type:'tf', q:'テニスボールは1缶に通常3個入っている。', a:true, exp:'プレッシャーボールは通常3個入りの缶（一部4個入りあり）で販売されています。'},
+      {type:'tf', q:'ホークアイシステムはボールの軌道を計算する技術で、誤差は数mmである。', a:true, exp:'ホークアイ（Hawk-Eye）の誤差は平均約3.6mm程度とされています。'},
+      {type:'tf', q:'フェデラーはグランドスラム初優勝を全豪オープンで達成した。', a:false, exp:'フェデラーのグランドスラム初優勝は2003年のウインブルドンです。'},
+      // 4択
+      {type:'mc', q:'テニスの試合球はグランドスラムで何球ごとに交換される？', choices:['3ゲームごと','5ゲームごと','7ゲームごと','9ゲームごと'], a:1, exp:'試合では最初のみ7ゲーム後、以降5ゲームごとに新球へ交換します（大会によって若干異なる）。'},
+      {type:'mc', q:'テニスの原型とされるスポーツは？', choices:['バドミントン','ジュー・ド・ポーム（掌打ち球戯）','スカッシュ','ハンドボール'], a:1, exp:'テニスの原型は中世フランスの「ジュー・ド・ポーム」（手のひらで球を打ち合う競技）とされています。'},
+      {type:'mc', q:'テニスが近代スポーツとして普及し始めた時代は？', choices:['17世紀','18世紀','19世紀','20世紀初頭'], a:2, exp:'近代テニスは1873年にウォルター・クロプトン・ウィングフィールドが考案し19世紀に普及しました。'},
+      {type:'mc', q:'全仏オープンの別名（コートの名前）は？', choices:['フィリップ・シャトリエ・コート（ローランギャロス）','メルボルン・パーク','フラッシング・メドウ','オールイングランド・クラブ'], a:0, exp:'全仏オープンはパリのローランギャロスで開催。センターコートはフィリップ・シャトリエと呼ばれます。'},
+      {type:'mc', q:'「ゴールデンセット」とは？', choices:['タイブレーク付きのセット','1ポイントも失わずに6-0でセットを取ること','金色のボールで行うセット','決勝セットのこと'], a:1, exp:'ゴールデンセットは相手に1ポイントも取らせずに6-0でセットを取ること。非常に稀な記録です。'},
+      {type:'mc', q:'テニスで「セカンドサーバー」と呼ばれるプレーは？', choices:['セカンドサービスで確実に入れるプレーヤー','ファーストよりセカンドサービスを武器にする選手','バックアップサーバー','サービス係のスタッフ'], a:1, exp:'セカンドサービスをウィークポイントにせず、むしろ武器として使える選手を指します。'},
+      {type:'mc', q:'男子テニスのサービス速度の世界記録は？（参考値）', choices:['約200km/h','約230km/h','約263km/h','約290km/h'], a:2, exp:'2012年にサム・グロスがATP公式大会で記録した263.4km/hが最速記録（2023年時点）です。'},
+      {type:'mc', q:'「ATP」とは何の略？', choices:['Association of Tennis Professionals','Advanced Tennis Program','American Tennis Players','Athletic Tennis Performance'], a:0, exp:'ATPはAssociation of Tennis Professionalsの略で、男子プロテニス協会のことです。'},
+      {type:'mc', q:'テニスのランキングポイントはどのように決まる？', choices:['試合数だけで決まる','勝利したトーナメントのグレードと成績で決まる','世界ランカーへの勝利数で決まる','ファン投票で決まる'], a:1, exp:'ATPランキングは直近52週間の試合結果をもとに、大会のグレードと勝ち上がった成績でポイントが計算されます。'},
+      {type:'mc', q:'テニスの「グランドスラム」という言葉の由来は？', choices:['ゴルフから借用した','カードゲームのブリッジから借用した','ファンが命名した','主要4大会を開催した国が決めた'], a:1, exp:'グランドスラムはカードゲーム「ブリッジ」の全勝を意味する言葉から借用されました。'},
+      {type:'mc', q:'テニスの「デビスカップ」とは？', choices:['個人の世界選手権','国別対抗男子団体戦','混合ダブルス選手権','プロ選手引退記念大会'], a:1, exp:'デビスカップは世界最大の男子国別対抗戦。ドワイト・デビスが1900年に創設しました。'},
+      {type:'tf', q:'全豪オープンの会場「メルボルン・パーク」は以前「フリンダーズ・パーク」と呼ばれていた。', a:true, exp:'1988年にオープンし、当初はフリンダーズ・パークと命名。後にメルボルン・パークに改名されました。'},
+      {type:'mc', q:'「ビリー・ジーン・キング杯」とは何？', choices:['男子国別対抗戦','女子国別対抗団体戦','混合ダブルスの大会','テニスの殿堂記念杯'], a:1, exp:'フェドカップが2020年に「ビリー・ジーン・キング杯」に改名。女子の国別対抗戦です。'},
+      {type:'tf', q:'テニスの試合では電子ライン審判（ELC）が導入されている大会が増えている。', a:true, exp:'電子ラインコール（ELC/Hawk-Eye Live）は人間の線審に代わりコンピュータが判定する技術で普及中です。'},
+      {type:'mc', q:'ロブの語源に近いとされる英語の意味は？', choices:['投げ返す','高く放り上げる','速く走る','ネットを越える'], a:1, exp:'lobは「高く放り上げる」を意味する英語で、そのまま球技の高い弧のショットに使われています。'},
+    ]
+  },
+  {
+    id: 'japan',
+    name: '日本テニス',
+    icon: '🇯🇵',
+    questions: [
+      {type:'tf', q:'錦織圭は日本人男子として初めてATPファイナルズに出場した。', a:true, exp:'錦織はATPワールドツアー・ファイナルズに複数回出場した日本男子初のプレーヤーです。'},
+      {type:'tf', q:'伊達公子は現役引退後、40代でツアーに復帰した。', a:true, exp:'伊達は2008年に37歳で、2012年には41歳で試合に出場する驚異的な復帰を見せました。'},
+      {type:'tf', q:'大坂なおみは全仏オープンで優勝したことがある。', a:false, exp:'大坂の優勝はすべてハードコート（全豪・全米）です。クレーコートのフレンチオープン優勝歴はありません。'},
+      {type:'tf', q:'日本テニス協会（JTA）の設立は1922年である。', a:true, exp:'日本テニス協会は1922年（大正11年）に設立されました。'},
+      {type:'tf', q:'松岡修造はウインブルドンでベスト8に入ったことがある。', a:true, exp:'松岡修造は1995年ウインブルドンでベスト8に進出。日本男子最高成績のひとつです。'},
+      {type:'tf', q:'日本テニスの聖地「有明テニスの森」は大阪にある。', a:false, exp:'有明テニスの森パークは東京都江東区有明にあります。全日本テニス選手権などが開催されます。'},
+      {type:'tf', q:'錦織圭はプロデビュー前にIMGアカデミーで修行した。', a:true, exp:'錦織はフロリダのIMGアカデミーで育ち、その才能を世界に知らしめました。'},
+      {type:'tf', q:'大坂なおみの父親はフランス系ハイチ人である。', a:true, exp:'大坂の父レオナルドさんはハイチ系アメリカ人、母の環さんは日本人です。'},
+      // 4択
+      {type:'mc', q:'錦織圭の2014年全米オープン決勝の相手は？', choices:['ノバク・ジョコビッチ','ラファエル・ナダル','マリン・チリッチ','ロジャー・フェデラー'], a:2, exp:'2014年全米オープン決勝で錦織はクロアチアのマリン・チリッチに3-0（セット）で敗れ準優勝でした。'},
+      {type:'mc', q:'伊達公子の最高世界ランキングは？', choices:['2位','4位','6位','8位'], a:1, exp:'伊達公子は1995年に世界ランキング4位まで上り詰め、日本女子テニス史上最高位を記録しました。'},
+      {type:'mc', q:'大坂なおみが2018年全米オープン決勝で破った選手は？', choices:['アンジェリック・ケルバー','セリーナ・ウィリアムズ','シモナ・ハレプ','ガルビネ・ムグルサ'], a:1, exp:'大坂は2018年全米オープン決勝でセリーナ・ウィリアムズを6-2, 6-4で破りグランドスラム初優勝。'},
+      {type:'mc', q:'全日本テニス選手権が開催される主な会場は？', choices:['大阪なんばコート','有明テニスの森','福岡テニスコート','横浜スタジアム'], a:1, exp:'全日本テニス選手権は東京・有明テニスの森で例年開催されています。'},
+      {type:'mc', q:'日本で初めてデビスカップに参加したのは何年？', choices:['1921年','1928年','1933年','1938年'], a:0, exp:'日本は1921年（大正10年）にデビスカップに初参加しました。アジア初参加国のひとつです。'},
+      {type:'mc', q:'「テニスの王子様」（漫画）の作者は？', choices:['尾田栄一郎','許斐剛','岸本斉史','久保帯人'], a:1, exp:'「テニスの王子様」（テニプリ）は許斐剛さん作。1999年から週刊少年ジャンプで連載開始しました。'},
+      {type:'mc', q:'錦織圭を育てたコーチとして有名なのは？', choices:['ボリス・ベッカー','マイケル・チャン','ニック・ボロテリー','カルロス・モヤ'], a:1, exp:'マイケル・チャン（元全仏オープン覇者）が錦織のコーチとして活躍し、彼の成長を支えました。'},
+      {type:'mc', q:'日本で初めてWTAツアー大会が開催されたのはいつ頃？', choices:['1950年代','1970年代','1980年代','1990年代'], a:2, exp:'日本ではパンパシフィックオープン（1984年開始）など1980年代にWTAツアー大会が定着しました。'},
+      {type:'tf', q:'西岡良仁はダブルハンデッドバックハンドを使う選手である。', a:false, exp:'西岡良仁はシングルハンドバックハンドスライスを多用するのが特徴の選手です。'},
+      {type:'mc', q:'内山靖崇は主にどのサーフェスを得意としているか？', choices:['クレー','ハード','芝','オムニ'], a:1, exp:'内山靖崇はハードコートを中心に活躍し、ATPツアーで実績を積んでいる日本男子選手です。'},
+      {type:'mc', q:'日本テニス協会（JTA）が主催する最高峰の国内大会は？', choices:['全国高校テニス選手権','全日本テニス選手権','全国市民テニス選手権','ジャパンオープン'], a:1, exp:'全日本テニス選手権が国内最高峰。有明テニスの森で毎年秋に開催されます。'},
+      {type:'mc', q:'ジャパンオープン（楽天ジャパンオープン）のコートサーフェスは？', choices:['クレー','芝','ハードコート','オムニコート'], a:2, exp:'東京で開催されるジャパンオープンはATP500大会で、屋外ハードコートで行われます。'},
+      {type:'tf', q:'日本は2004年アテネ五輪でテニス男子ダブルスに出場した。', a:false, exp:'日本テニス代表がオリンピックで注目を浴びたのは主に2010年代以降、錦織・大坂らの活躍からです。'},
+    ]
+  },
+];
+
+/* ===================== STATE ===================== */
+let currentGenre = null;
+let currentQuestions = [];
+let currentIdx = 0;
+let score = 0;
+let correctCount = 0;
+let wrongItems = [];
+let timerSec = 120;
+let timerInterval = null;
+let playerName = '';
+let answered = false;
+
+/* ===================== SCREENS ===================== */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  if (id === 'rank') renderRanking();
+}
+
+/* ===================== GENRE CARDS ===================== */
+function buildGenreGrid() {
+  const grid = document.getElementById('genre-grid');
+  grid.innerHTML = '';
+  GENRES.forEach(g => {
+    const card = document.createElement('div');
+    card.className = 'genre-card';
+    card.innerHTML = `<span class="genre-icon">${g.icon}</span>
+      <div class="genre-info">
+        <div class="genre-name">${g.name}</div>
+        <div class="genre-count">全${g.questions.length}問収録 ／ 10問ランダム出題</div>
+      </div>`;
+    card.onclick = () => openIntro(g.id);
+    grid.appendChild(card);
+  });
+}
+
+function openIntro(genreId) {
+  currentGenre = GENRES.find(g => g.id === genreId);
+  document.getElementById('intro-icon').textContent = currentGenre.icon;
+  document.getElementById('intro-genre').textContent = currentGenre.name;
+  document.getElementById('intro-count').textContent = `全${currentGenre.questions.length}問収録 ／ 10問ランダム出題`;
+  document.getElementById('player-name').value = playerName;
+  showScreen('intro');
+}
+
+/* ===================== START ===================== */
+function startQuiz() {
+  playerName = document.getElementById('player-name').value.trim() || 'ゲスト';
+  // Shuffle & pick 10
+  const pool = [...currentGenre.questions].sort(() => Math.random() - .5).slice(0, 10);
+  currentQuestions = pool;
+  currentIdx = 0;
+  score = 0;
+  correctCount = 0;
+  wrongItems = [];
+  timerSec = 120;
+  answered = false;
+  showScreen('quiz');
+  renderQuestion();
+  startTimer();
+}
+
+/* ===================== TIMER ===================== */
+function startTimer() {
+  clearInterval(timerInterval);
+  updateTimerUI();
+  timerInterval = setInterval(() => {
+    timerSec--;
+    updateTimerUI();
+    if (timerSec <= 0) { timerSec = 0; updateTimerUI(); clearInterval(timerInterval); endQuiz(); }
+  }, 1000);
+}
+
+function updateTimerUI() {
+  const num = document.getElementById('timer-num');
+  const bar = document.getElementById('timer-bar');
+  num.textContent = timerSec;
+  const pct = (timerSec / 120) * 100;
+  bar.style.width = pct + '%';
+  bar.className = 'timer-bar-fill' + (timerSec <= 15 ? ' danger' : timerSec <= 40 ? ' warn' : '');
+  num.style.color = timerSec <= 15 ? 'var(--wrong)' : 'var(--text)';
+}
+
+/* ===================== QUESTION ===================== */
+function renderQuestion() {
+  const q = currentQuestions[currentIdx];
+  answered = false;
+
+  document.getElementById('qh-progress').textContent = `Q${currentIdx+1} / 10`;
+  document.getElementById('progress-bar').style.width = ((currentIdx) / 10 * 100) + '%';
+  document.getElementById('qh-score').textContent = score + ' pt';
+
+  const badge = document.getElementById('q-type-badge');
+  badge.textContent = q.type === 'mc' ? '4択' : '○×';
+  badge.className = 'q-type-badge ' + (q.type === 'mc' ? 'multi' : 'truefalse');
+
+  document.getElementById('q-text').textContent = q.q;
+
+  const choices = document.getElementById('choices');
+  choices.innerHTML = '';
+  choices.className = 'choices';
+
+  if (q.type === 'mc') {
+    choices.classList.add('two-col');
+    const labels = ['A','B','C','D'];
+    q.choices.forEach((c, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'choice-btn';
+      btn.innerHTML = `<span style="color:var(--gold);min-width:20px">${labels[i]}</span>${c}`;
+      btn.onclick = () => selectAnswer(i);
+      choices.appendChild(btn);
+    });
+  } else {
+    choices.classList.add('two-col');
+    ['⭕ 正しい','❌ 間違い'].forEach((c, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'choice-btn tf-btn';
+      btn.textContent = c;
+      btn.onclick = () => selectAnswer(i === 0);
+      choices.appendChild(btn);
+    });
+  }
+
+  document.getElementById('feedback-bar').className = 'feedback-bar';
+  document.getElementById('feedback-bar').textContent = '';
+  document.getElementById('explanation-box').className = 'explanation-box';
+  document.getElementById('explanation-box').textContent = '';
+  document.getElementById('btn-next').className = 'btn-next';
+}
+
+/* ===================== ANSWER ===================== */
+function selectAnswer(selected) {
+  if (answered) return;
+  answered = true;
+
+  const q = currentQuestions[currentIdx];
+  const correct = q.a;
+  const isCorrect = selected === correct;
+
+  const btns = document.querySelectorAll('.choice-btn');
+
+  if (q.type === 'mc') {
+    btns.forEach((b, i) => {
+      b.disabled = true;
+      if (i === correct) b.classList.add('correct');
+      else if (i === selected && !isCorrect) b.classList.add('wrong');
+    });
+  } else {
+    btns.forEach((b, i) => {
+      b.disabled = true;
+      const val = i === 0; // true/false
+      if (val === correct) b.classList.add('correct');
+      else if (val === selected && !isCorrect) b.classList.add('wrong');
+    });
+  }
+
+  const fb = document.getElementById('feedback-bar');
+  const exp = document.getElementById('explanation-box');
+
+  if (isCorrect) {
+    score += 10;
+    timerSec = Math.min(timerSec + 5, 240);
+    correctCount++;
+    fb.textContent = '✅ 正解！ ＋5秒';
+    fb.className = 'feedback-bar show correct';
+    showToast('✅ 正解！ ＋5秒', 1400);
+  } else {
+    timerSec = Math.max(timerSec - 5, 1);
+    let correctLabel = '';
+    if (q.type === 'mc') {
+      correctLabel = q.choices[correct];
+    } else {
+      correctLabel = correct ? '○（正しい）' : '×（間違い）';
+    }
+    fb.textContent = `❌ 正解は「${correctLabel}」（−5秒）`;
+    fb.className = 'feedback-bar show wrong';
+    wrongItems.push({ q: q.q, a: correctLabel, exp: q.exp || '' });
+    showToast('❌ −5秒', 1400);
+  }
+
+  updateTimerUI();
+  document.getElementById('qh-score').textContent = score + ' pt';
+
+  if (q.exp) {
+    exp.textContent = '💬 ' + q.exp;
+    exp.className = 'explanation-box show';
+  }
+
+  document.getElementById('btn-next').className = 'btn-next show';
+}
+
+/* ===================== NEXT ===================== */
+function nextQuestion() {
+  currentIdx++;
+  if (currentIdx >= 10) {
+    endQuiz();
+  } else {
+    renderQuestion();
+  }
+}
+
+/* ===================== END ===================== */
+function endQuiz() {
+  clearInterval(timerInterval);
+  const bonus = Math.max(timerSec, 0);
+  const total = score + bonus;
+
+  saveScore(currentGenre.id, playerName, total);
+
+  document.getElementById('result-trophy').textContent = total >= 150 ? '🥇' : total >= 100 ? '🥈' : '🥉';
+  document.getElementById('result-genre-name').textContent = currentGenre.icon + ' ' + currentGenre.name;
+  document.getElementById('score-big').textContent = total;
+  document.getElementById('res-correct').textContent = correctCount;
+  document.getElementById('res-wrong').textContent = (10 - correctCount);
+  document.getElementById('res-bonus').textContent = '+' + bonus;
+
+  const wl = document.getElementById('wrong-list');
+  if (wrongItems.length > 0) {
+    wl.innerHTML = `<div class="wrong-title">❌ 間違えた問題 (${wrongItems.length}問)</div>` +
+      wrongItems.map(w => `
+        <div class="wrong-item">
+          <div class="wi-q">Q. ${w.q}</div>
+          <div class="wi-a">✅ 正解：${w.a}</div>
+          ${w.exp ? `<div class="wi-exp">💬 ${w.exp}</div>` : ''}
+        </div>`).join('');
+  } else {
+    wl.innerHTML = '<div style="color:var(--correct);font-weight:700;text-align:center;padding:20px">🎉 全問正解！</div>';
+  }
+
+  showScreen('result');
+}
+
+function retryQuiz() {
+  startQuiz();
+}
+
+/* ===================== RANKING ===================== */
+function saveScore(genreId, name, score) {
+  const key = 'tennis_rank_' + genreId;
+  let list = JSON.parse(localStorage.getItem(key) || '[]');
+  list.push({ name, score, date: new Date().toLocaleDateString('ja') });
+  list.sort((a, b) => b.score - a.score);
+  list = list.slice(0, 10);
+  localStorage.setItem(key, JSON.stringify(list));
+}
+
+function renderRanking() {
+  const tabs = document.getElementById('rank-tabs');
+  tabs.innerHTML = '';
+  GENRES.forEach((g, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'rank-tab' + (i === 0 ? ' active' : '');
+    btn.textContent = g.icon + ' ' + g.name;
+    btn.onclick = () => {
+      document.querySelectorAll('.rank-tab').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      renderRankList(g.id);
+    };
+    tabs.appendChild(btn);
+  });
+  renderRankList(GENRES[0].id);
+}
+
+function renderRankList(genreId) {
+  const list = JSON.parse(localStorage.getItem('tennis_rank_' + genreId) || '[]');
+  const el = document.getElementById('rank-list');
+  if (list.length === 0) {
+    el.innerHTML = '<div class="rank-empty">まだ記録がありません</div>';
+    return;
+  }
+  const medals = ['gold','silver','bronze'];
+  el.innerHTML = list.map((r, i) => `
+    <div class="rank-item">
+      <span class="rank-pos ${medals[i]||''}">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i+1)}</span>
+      <span class="rank-name">${r.name}</span>
+      <span style="font-size:12px;color:var(--muted);margin-right:8px">${r.date}</span>
+      <span class="rank-score">${r.score}</span>
+    </div>`).join('');
+}
+
+/* ===================== TOAST ===================== */
+function showToast(msg, ms = 1800) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), ms);
+}
+
+/* ===================== INIT ===================== */
+buildGenreGrid();
+</script>
+</body>
+</html>
