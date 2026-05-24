@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="ja">
-  <script src="https://pecpec37-gift.github.io/portal/stamp.js"></script>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -436,6 +435,7 @@
     .choices.two-col { grid-template-columns: 1fr; }
   }
 </style>
+<script src="https://pecpec37-gift.github.io/portal/stamp.js"></script>
 </head>
 <body>
 
@@ -1063,27 +1063,26 @@ buildGenreGrid();
    href="https://pecpec37-gift.github.io/portal/">
   &larr; とみやんのゲームランド
 </a>
- <!-- ⭐ スタンプ送信（とみやんのゲームランド） -->
+<!-- ⭐ スタンプ送信（とみやんのゲームランド） -->
 <script>
 (function() {
   var GAME_ID = 'tennis-quiz';
 
-  // ---- プレーヤー名の自動セット ----
-  // showScreen('intro') が呼ばれたとき #player-name に自動入力
-  window.addEventListener('DOMContentLoaded', function() {
-    var _orig = window.showScreen;
-    if (typeof _orig === 'function') {
-      window.showScreen = function(name) {
-        _orig(name);
-        if (name === 'intro') {
-          setTimeout(function() {
-            var inp = document.getElementById('player-name');
-            if (inp && window.TomyStamp) {
-              var saved = TomyStamp.getPlayer();
-              if (saved && !inp.value) inp.value = saved;
-            }
-          }, 50);
-        }
+  window.addEventListener('load', function() {
+
+    // ---- プレーヤー名の自動セット ----
+    // openIntro が呼ばれたとき #player-name にポータルの名前を自動入力
+    var _origOpenIntro = window.openIntro;
+    if (typeof _origOpenIntro === 'function') {
+      window.openIntro = function(genreId) {
+        _origOpenIntro(genreId);
+        setTimeout(function() {
+          var inp = document.getElementById('player-name');
+          if (inp && window.TomyStamp) {
+            var saved = TomyStamp.getPlayer();
+            if (saved && !inp.value) inp.value = saved;
+          }
+        }, 50);
       };
     }
 
@@ -1095,8 +1094,8 @@ buildGenreGrid();
       new MutationObserver(function() {
         if (resultEl.classList.contains('active') && !sent) {
           sent = true;
-          setTimeout(sendStamp, 300);
-          setTimeout(function() { sent = false; }, 2000); // 再チャレンジ用リセット
+          setTimeout(sendStamp, 400);
+          setTimeout(function() { sent = false; }, 3000);
         }
       }).observe(resultEl, { attributes: true, attributeFilter: ['class'] });
     }
@@ -1105,43 +1104,40 @@ buildGenreGrid();
   function sendStamp() {
     if (!window.TomyStamp) return;
 
-    // プレーヤー名
-    var player = TomyStamp.getPlayer();
-    if (!player) {
-      var inp = document.getElementById('player-name');
-      if (inp && inp.value) { player = inp.value.trim(); TomyStamp.setPlayer(player); }
+    // プレーヤー名：ゲームのglobal変数 playerName を優先
+    var player = (typeof playerName === 'string' && playerName) ? playerName : TomyStamp.getPlayer();
+    if (!player || player === 'ゲスト') {
+      player = TomyStamp.getPlayer();
     }
+    if (player) TomyStamp.setPlayer(player);
     if (!player) return;
 
-    // 正解数：結果画面の .stat-val.green（正解数カード）
+    // 正解数：#res-correct（正解数表示要素）
     var correctCount = 0;
-    var greenEl = document.querySelector('#screen-result .stat-val.green');
-    if (greenEl) correctCount = parseInt(greenEl.textContent) || 0;
+    var resEl = document.getElementById('res-correct');
+    if (resEl) correctCount = parseInt(resEl.textContent) || 0;
 
-    // ジャンル名：.result-genre-name または グローバル変数
-    var genreName = '';
-    var gnEl = document.querySelector('.result-genre-name');
-    if (gnEl) genreName = gnEl.textContent.trim();
-    if (!genreName) {
-      ['currentGenre','selectedGenre','genreName','genre'].forEach(function(v) {
-        if (!genreName && typeof window[v] === 'string') genreName = window[v];
-      });
+    // ジャンル名：currentGenre オブジェクトの name を使用
+    var genreName = 'default';
+    if (typeof currentGenre === 'object' && currentGenre && currentGenre.name) {
+      genreName = currentGenre.name;
+    } else {
+      var gnEl = document.getElementById('result-genre-name');
+      if (gnEl) genreName = gnEl.textContent.trim() || 'default';
     }
-    if (!genreName) genreName = 'default';
 
-    console.log('[stamp] correct=' + correctCount + ' genre=' + genreName);
+    console.log('[stamp] player=' + player + ' correct=' + correctCount + ' genre=' + genreName);
 
     if (correctCount >= 9) {
       TomyStamp.send(GAME_ID, genreName, correctCount).then(function(r) {
         if (r.ok) {
-          console.log('[⭐ stamp] 獲得!');
-          // トースト表示（ゲームの既存toast要素を再利用）
-          var t = document.getElementById('toast');
-          if (t) {
-            t.textContent = '⭐ スタンプ獲得！ランキングに反映されます';
-            t.classList.add('show');
-            setTimeout(function() { t.classList.remove('show'); }, 3000);
-          }
+          console.log('[⭐ stamp] 獲得! genre=' + genreName);
+          // 画面上にトースト通知を表示
+          var toast = document.createElement('div');
+          toast.textContent = '⭐ スタンプ獲得！ランキングに反映されます';
+          toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#f0d060;padding:10px 20px;border-radius:4px;font-size:13px;z-index:9999;border:1px solid rgba(240,208,96,0.4);';
+          document.body.appendChild(toast);
+          setTimeout(function() { document.body.removeChild(toast); }, 3000);
         }
       });
     }
