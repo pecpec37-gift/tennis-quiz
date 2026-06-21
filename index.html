@@ -168,10 +168,31 @@
     border:1px solid rgba(215,242,75,.4);border-radius:4px;padding:3px 10px;margin-bottom:14px;
   }
   .qtype{float:right;font-size:11px;color:var(--line-dim);margin-top:4px;}
-  .qtext{font-size:clamp(17px,4.8vw,23px);font-weight:700;line-height:1.6;margin-bottom:4px;}
+  .qtext{
+    font-size:clamp(17px,4.8vw,23px);font-weight:700;line-height:1.7;margin-bottom:4px;
+    min-height:2.4em;transition:opacity .3s ease;
+  }
+  .qtext::after{content:"▌";color:var(--ball);animation:caret 1s steps(2,end) infinite;margin-left:2px;}
+  .qtext.done::after,.qtext.fade-out::after{content:"";}
+  @keyframes caret{50%{opacity:0;}}
+  .qtext.fade-out{opacity:0;}
   .qsub{font-size:13px;color:var(--line-dim);margin-top:8px;}
 
-  .choices{display:grid;gap:10px;margin-top:20px;}
+  /* buzzer（回答する！） */
+  .buzz-wrap{margin-top:22px;text-align:center;}
+  .btn-buzz{
+    font-family:'Noto Sans JP',sans-serif;font-size:clamp(20px,6vw,26px);font-weight:900;
+    color:#1a2705;background:radial-gradient(circle at 50% 35%,#eaff6b,var(--ball) 55%,#aac42f);
+    border:none;border-radius:50%;width:clamp(126px,36vw,146px);height:clamp(126px,36vw,146px);
+    cursor:pointer;box-shadow:0 8px 26px rgba(215,242,75,.5),inset 0 -6px 14px rgba(0,0,0,.25),inset 0 4px 10px rgba(255,255,255,.4);
+    transition:transform .1s ease;letter-spacing:.02em;line-height:1.25;animation:buzzpulse 1.6s ease-in-out infinite;
+  }
+  .btn-buzz:active{transform:scale(.92);}
+  @keyframes buzzpulse{0%,100%{box-shadow:0 8px 26px rgba(215,242,75,.4),inset 0 -6px 14px rgba(0,0,0,.25),inset 0 4px 10px rgba(255,255,255,.4);}50%{box-shadow:0 8px 38px rgba(215,242,75,.8),inset 0 -6px 14px rgba(0,0,0,.25),inset 0 4px 10px rgba(255,255,255,.4);}}
+  .buzz-hint{margin-top:12px;font-size:12px;color:var(--line-dim);letter-spacing:.05em;}
+
+  .choices{display:none;gap:10px;margin-top:20px;}
+  .choices.show{display:grid;animation:fade .3s ease;}
   .choices.ox{grid-template-columns:1fr 1fr;}
   .choice{
     font-family:'Noto Sans JP',sans-serif;font-size:clamp(15px,4.2vw,18px);font-weight:600;
@@ -191,6 +212,39 @@
   .choice.wrong{background:linear-gradient(135deg,#c64a22,#9c3415);border-color:var(--accent);color:#fff;}
   .choice.dim{opacity:.4;}
   .choice[disabled]{cursor:default;}
+
+  /* result overlay (正誤オーバーレイ) */
+  .result-overlay{
+    position:fixed;inset:0;z-index:55;background:rgba(5,15,7,.82);
+    display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);
+  }
+  .result-overlay.show{display:flex;animation:fade .25s ease;}
+  .ro-card{
+    background:linear-gradient(160deg,var(--card),var(--card2));border-radius:22px;
+    max-width:420px;width:100%;padding:28px 24px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.7);
+    border:1px solid rgba(255,255,255,.08);
+  }
+  .ro-card.ok{border-color:var(--green-ok);}
+  .ro-card.ng{border-color:var(--accent);}
+  .ro-mark{font-size:64px;line-height:1;}
+  .ro-card.ok .ro-mark{color:var(--green-ok);text-shadow:0 0 24px rgba(70,194,100,.5);}
+  .ro-card.ng .ro-mark{color:var(--accent);text-shadow:0 0 24px rgba(255,122,51,.5);}
+  .ro-head{font-size:24px;font-weight:900;margin:8px 0 2px;}
+  .ro-card.ok .ro-head{color:var(--green-ok);}
+  .ro-card.ng .ro-head{color:var(--accent-bright);}
+  .ro-ans{margin:14px 0 0;font-size:14px;color:var(--line-dim);}
+  .ro-ans b{display:block;margin-top:4px;font-size:17px;color:var(--ball);font-weight:700;line-height:1.5;}
+  .ro-explain{margin-top:14px;padding:13px 15px;background:rgba(215,242,75,.08);border-left:3px solid var(--ball);border-radius:9px;font-size:13px;line-height:1.8;color:#eef7e6;text-align:left;}
+  .ro-card .btn{margin-top:20px;width:100%;}
+
+  /* 花丸スタンプ表示 */
+  .hanamaru{
+    display:none;margin:16px auto 4px;padding:13px 16px;border-radius:16px;max-width:340px;
+    background:linear-gradient(135deg,rgba(215,242,75,.2),rgba(255,122,51,.16));
+    border:1.5px solid rgba(215,242,75,.6);
+  }
+  .hanamaru .mark{font-size:46px;line-height:1;}
+  .hanamaru .msg{font-weight:900;color:var(--ball-soft);margin-top:4px;letter-spacing:.03em;}
 
   /* feedback toast */
   .toast{
@@ -305,11 +359,12 @@
       <h3>遊び方</h3>
       <ul>
         <li>各ジャンルから <b>ランダム10問</b> を出題（4択 ＋ ○× ミックス）</li>
-        <li>制限時間は <b>120秒</b>。残った時間はそのまま <b>ボーナス点</b> に！</li>
+        <li>問題文が流れたら <b>「回答する！」</b> ボタンを押す → 選択肢が出現！</li>
+        <li>制限時間は <b>60秒</b>。残った時間はそのまま <b>ボーナス点</b> に！</li>
         <li>正解 → <b>+10点 ＆ 時間+5秒</b>（「正解！ +5秒」）</li>
         <li>不正解 → <b>減点なし・時間−5秒</b>（正解を表示）</li>
+        <li>正解率 <b>90%以上で🌸花丸スタンプ</b>（ポータルのランキングに反映）</li>
         <li>終了後は <b>間違えた問題を1問ずつ復習</b> できます</li>
-        <li>スコアは端末内ランキングに記録（共有なし・ローカル保存）</li>
       </ul>
       <div class="tap-hint"><span>▶ ジャンルカードをクリックで即スタート！</span></div>
     </div>
@@ -327,7 +382,7 @@
   <section id="screen-quiz" class="screen">
     <div class="hud">
       <div class="pill score-pill"><span class="lab">得点</span><span id="hudScore">0</span></div>
-      <div class="pill time-pill" id="timePill"><span class="lab">残り</span><span id="hudTime">120</span>秒</div>
+      <div class="pill time-pill" id="timePill"><span class="lab">残り</span><span id="hudTime">60</span>秒</div>
     </div>
     <div class="timebar"><div class="fill" id="timeFill"></div></div>
     <div class="progress" id="progress">第 1 問 / 10</div>
@@ -337,6 +392,10 @@
       <span class="qtype" id="qType">4択</span>
       <div class="qtext" id="qText"></div>
       <div class="qsub" id="qSub"></div>
+      <div class="buzz-wrap" id="buzzWrap">
+        <button class="btn-buzz" onclick="buzz()">回答<br>する！</button>
+        <div class="buzz-hint">押すと選択肢が出ます</div>
+      </div>
       <div class="choices" id="choices"></div>
     </div>
   </section>
@@ -350,6 +409,11 @@
 
       <div class="total-score"><span id="resTotal">0</span><small> 点</small></div>
       <div class="rank-badge" id="resBadge">—</div>
+
+      <div class="hanamaru" id="hanamaru">
+        <div class="mark">🌸</div>
+        <div class="msg">花丸スタンプ獲得！</div>
+      </div>
 
       <div class="score-break">
         <div class="row"><span>正解数</span><span class="v"><span id="resCorrect">0</span> / 10 問</span></div>
@@ -401,7 +465,7 @@
     <h2 id="modalName">ルール・基本知識</h2>
     <p id="modalDesc"></p>
     <div class="rules">
-      ⏱ 120秒　/　全10問　/　正解 +10点・+5秒<br>残り時間はボーナス点に！
+      ⏱ 60秒　/　全10問　/　正解 +10点・+5秒<br>残り時間はボーナス点に！
     </div>
     <div class="modal-btns">
       <button class="btn btn-ghost" onclick="closeModal()">やめる</button>
@@ -410,14 +474,28 @@
   </div>
 </div>
 
+<!-- 正誤オーバーレイ -->
+<div class="result-overlay" id="resultOverlay">
+  <div class="ro-card" id="roCard">
+    <div class="ro-mark" id="roMark">◯</div>
+    <div class="ro-head" id="roHead">正解！</div>
+    <div class="ro-ans" id="roAns"></div>
+    <div class="ro-explain" id="roExplain"></div>
+    <button class="btn btn-accent" onclick="nextQuestion()">次の問題へ ›</button>
+  </div>
+</div>
+
 <!-- feedback toast -->
 <div class="toast" id="toast"><div class="big" id="toastBig"></div><div class="small" id="toastSmall"></div></div>
+
+<!-- ポータル共通：花丸スタンプ送信 -->
+<script src="https://pecpec37-gift.github.io/portal/stamp.js"></script>
 
 <script>
 /* =========================================================
    テニスクイズ道場
    - 4択 + ○× ミックス / 10問ランダム
-   - 120秒 + 残り時間ボーナス / 正解+10点+5秒 / 不正解-5秒
+   - 60秒 + 残り時間ボーナス / 正解+10点+5秒 / 不正解-5秒
    - 表示時に選択肢シャッフル（正解位置の偏り防止）
    - ジャンル別ローカルランキング(localStorage)
    - 間違い復習 / canvas背景（テニスボール）の動的リサイズ
@@ -610,10 +688,13 @@ const ORDER = ["rules","technique","player","equipment","trivia","japan"];
 
 /* ---------- 状態 ---------- */
 let curGenre=null, questions=[], idx=0, score=0, correctCount=0;
-let timeLeft=120, timerId=null;
+let timeLeft=60, timerId=null;
 let wrongList=[];
 let reviewIdx=0, lastResult=null;
-const TOTAL_Q=10, START_TIME=120, MAX_TIME=999;
+let typingTimeout=null, fullQText='', answered=false, isOX=false;
+const TOTAL_Q=10, START_TIME=60, MAX_TIME=999;
+const TYPING_SPEED=120;                  // 1文字あたり120ミリ秒（早押しタイプ速度）
+const STAMP_GAME_ID='tennis-quiz';       // ポータル花丸スタンプ用ID（GitHubリポジトリ名と一致）
 const STORAGE_KEY='tennis_quiz_ranking_v1';
 
 /* ---------- 初期化 ---------- */
@@ -683,22 +764,57 @@ function updateTimeUI(){
   if(timeLeft<=15)pill.classList.add('warn');else pill.classList.remove('warn');
 }
 
-/* ---------- 出題描画 ---------- */
+/* ---------- 出題（タイプライター＋早押し） ---------- */
 function renderQuestion(){
+  answered=false;
   const q=questions[idx];
+  isOX=(typeof q.ox==='boolean');
   document.getElementById('qTag').textContent=QUIZ[curGenre].name;
-  const isOX=(typeof q.ox==='boolean');
   document.getElementById('qType').textContent=isOX?'○×問題':'4択問題';
   document.getElementById('progress').textContent=`第 ${idx+1} 問 / ${questions.length}`;
+  document.getElementById('qSub').textContent='';
 
-  let html=q.q;
-  const sub=document.getElementById('qSub');
-  sub.textContent='';
-  document.getElementById('qText').innerHTML=html;
+  // 選択肢を隠し、回答ボタンを表示
+  const box=document.getElementById('choices');
+  box.classList.remove('show');box.className='choices';box.innerHTML='';box.style.display='none';
+  document.getElementById('buzzWrap').style.display='block';
 
+  // タイプライター開始
+  typeQuestion(q.q);
+}
+function typeQuestion(text){
+  clearTimeout(typingTimeout);
+  fullQText=text;
+  const el=document.getElementById('qText');
+  el.classList.remove('fade-out','done');
+  el.textContent='';
+  let i=0;
+  (function step(){
+    el.textContent=text.slice(0,i);
+    if(i<text.length){i++;typingTimeout=setTimeout(step,TYPING_SPEED);}
+    else{el.classList.add('done');}
+  })();
+}
+
+/* 「回答する！」→ タイプ停止 → 問題文フェードアウト → 選択肢表示 */
+function buzz(){
+  if(answered)return;
+  clearTimeout(typingTimeout);
+  const el=document.getElementById('qText');
+  el.classList.add('fade-out');
+  document.getElementById('buzzWrap').style.display='none';
+
+  buildChoices(questions[idx]);
+  setTimeout(()=>{
+    const box=document.getElementById('choices');
+    box.style.display='grid';
+    void box.offsetWidth;
+    box.classList.add('show');
+  },280);
+}
+function buildChoices(q){
   const box=document.getElementById('choices');
   box.innerHTML='';box.className='choices';
-
   if(isOX){
     box.classList.add('ox');
     [['◯',true],['✕',false]].forEach(([mark,val])=>{
@@ -722,11 +838,14 @@ function renderQuestion(){
 
 /* ---------- 解答処理 ---------- */
 function pick(btn,isCorrect,q){
+  if(answered)return;
+  answered=true;
+  clearInterval(timerId); // オーバーレイ閲覧中はタイマー停止
+
   const buttons=document.querySelectorAll('#choices .choice');
   buttons.forEach(b=>b.disabled=true);
   if(btn&&btn.blur)btn.blur();
-  const isOX=(typeof q.ox==='boolean');
-  const correctText=isOX?(q.ox?'◯':'✕'):q.a;
+  const correctText=isOX?(q.ox?'◯（正しい）':'✕（誤り）'):q.a;
 
   if(isCorrect){
     score+=10;correctCount++;
@@ -734,19 +853,16 @@ function pick(btn,isCorrect,q){
     btn.classList.add('correct');
     document.getElementById('hudScore').textContent=score;
     updateTimeUI();
-    showToast(true,'正解！','+10点　時間 +5秒　⏱');
+    showToast(true,'✅ 正解！','+10点　時間 +5秒　⏱');
   }else{
     timeLeft=Math.max(0,timeLeft-5);
     btn.classList.add('wrong');
     buttons.forEach(b=>{
-      if(isOX){
-        if((b.textContent==='◯')===q.ox)b.classList.add('correct');
-      }else{
-        if(b.textContent===q.a)b.classList.add('correct');
-      }
+      if(isOX){ if((b.textContent==='◯')===q.ox)b.classList.add('correct'); }
+      else{ if(b.textContent===q.a)b.classList.add('correct'); }
     });
     updateTimeUI();
-    showToast(false,'❌ 不正解',`正解は「${correctText}」（時間 −5秒）`);
+    showToast(false,'❌ 不正解',`正解は「${isOX?(q.ox?'◯':'✕'):q.a}」（時間 −5秒）`);
     wrongList.push({
       qhtml:q.q,
       yours:isOX?(q.ox?'✕':'◯'):btn.textContent,
@@ -754,12 +870,42 @@ function pick(btn,isCorrect,q){
       e:q.e||''
     });
   }
-  setTimeout(()=>{
-    hideToast();
-    idx++;
-    if(idx>=questions.length || timeLeft<=0){endGame();}
-    else renderQuestion();
-  },1150);
+
+  // 問題文を全文でフェードイン再表示
+  const el=document.getElementById('qText');
+  el.classList.remove('fade-out');
+  el.classList.add('done');
+  el.textContent=fullQText;
+
+  // 0.6秒後に正誤オーバーレイ
+  setTimeout(()=>showResultOverlay(isCorrect,q,correctText),600);
+}
+
+/* ---------- 正誤オーバーレイ ---------- */
+function showResultOverlay(isCorrect,q,correctText){
+  const ov=document.getElementById('resultOverlay');
+  const card=document.getElementById('roCard');
+  card.className='ro-card '+(isCorrect?'ok':'ng');
+  document.getElementById('roMark').textContent=isCorrect?'◯':'✕';
+  document.getElementById('roHead').textContent=isCorrect?'正解！':'残念…';
+  document.getElementById('roAns').innerHTML=`正解<b>${escapeHtml(correctText)}</b>`;
+  const ex=document.getElementById('roExplain');
+  if(q.e){ex.style.display='block';ex.innerHTML='💡 '+escapeHtml(q.e);}
+  else{ex.style.display='none';}
+  ov.classList.add('show');
+}
+
+/* 「次の問題へ」→ 押した瞬間にトーストを消す */
+function nextQuestion(){
+  hideToast();
+  document.getElementById('resultOverlay').classList.remove('show');
+  idx++;
+  if(idx>=questions.length || timeLeft<=0){
+    endGame();
+  }else{
+    startTimer();      // 停止していたタイマーを再開
+    renderQuestion();
+  }
 }
 
 /* ---------- トースト ---------- */
@@ -776,11 +922,14 @@ function hideToast(){document.getElementById('toast').classList.remove('show');}
 /* ---------- 終了・結果 ---------- */
 function endGame(){
   clearInterval(timerId);
+  clearTimeout(typingTimeout);
   hideToast();
+  document.getElementById('resultOverlay').classList.remove('show');
+
   const base=correctCount*10;
   const bonus=timeLeft;
   const total=base+bonus;
-  lastResult={genre:curGenre,total,base,bonus,correct:correctCount,saved:false};
+  lastResult={genre:curGenre,total,base,bonus,correct:correctCount,saved:false,hanamaru:false,stamped:false};
 
   document.getElementById('resGenre').textContent='【'+QUIZ[curGenre].name+'】';
   document.getElementById('resTotal').textContent=total;
@@ -800,6 +949,25 @@ function endGame(){
   document.getElementById('reviewBtn').style.display=wrongList.length?'block':'none';
   document.getElementById('saveBtn').disabled=false;
   document.getElementById('saveBtn').textContent='📥 ランキングに登録';
+
+  // 花丸スタンプ（正解率90%以上＝10問中9問以上）
+  const hm=document.getElementById('hanamaru');
+  if(correctCount>=9){
+    if(hm)hm.style.display='block';
+    lastResult.hanamaru=true;
+    // ポータル登録名が既にあれば終了時に自動送信（重複防止）
+    if(window.TomyStamp && TomyStamp.getPlayer() && !lastResult.stamped){
+      lastResult.stamped=true;
+      try{TomyStamp.send(STAMP_GAME_ID,QUIZ[curGenre].name,correctCount);}catch(e){}
+    }
+  }else{
+    if(hm)hm.style.display='none';
+  }
+  // 登録名欄に既存のポータル名を自動入力
+  try{
+    const pn=document.getElementById('playerName');
+    if(window.TomyStamp && pn && !pn.value){const sv=TomyStamp.getPlayer();if(sv)pn.value=sv;}
+  }catch(e){}
 
   showScreen('result');
 }
@@ -821,6 +989,16 @@ function saveScore(){
   data[lastResult.genre].sort((a,b)=>b.score-a.score);
   data[lastResult.genre]=data[lastResult.genre].slice(0,50);
   try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data));}catch(e){}
+  // ポータル花丸ランキングへ反映（正解率90%以上のとき）
+  try{
+    if(window.TomyStamp){
+      TomyStamp.setPlayer(name);
+      if(lastResult.hanamaru && !lastResult.stamped){
+        lastResult.stamped=true;
+        TomyStamp.send(STAMP_GAME_ID,QUIZ[lastResult.genre].name,lastResult.correct);
+      }
+    }
+  }catch(e){}
   lastResult.saved=true;
   document.getElementById('saveBtn').textContent='✅ 登録しました';
   document.getElementById('saveBtn').disabled=true;
@@ -912,7 +1090,7 @@ function showScreen(name){
   document.getElementById('screen-'+name).classList.add('active');
   window.scrollTo(0,0);
 }
-function goTitle(){clearInterval(timerId);showScreen('title');}
+function goTitle(){clearInterval(timerId);clearTimeout(typingTimeout);hideToast();document.getElementById('resultOverlay').classList.remove('show');showScreen('title');}
 function retrySame(){if(curGenre)startGame(curGenre);}
 
 /* ---------- canvas 背景（テニスボール・動的リサイズ） ---------- */
