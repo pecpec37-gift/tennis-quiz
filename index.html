@@ -101,7 +101,9 @@
     transition:transform .15s ease,border-color .2s ease,box-shadow .2s ease;
   }
   .gcard:active{transform:scale(.97);}
-  .gcard:hover{border-color:var(--ball);box-shadow:0 8px 22px var(--shadow),0 0 0 1px rgba(215,242,75,.2) inset;}
+  @media (hover:hover) and (pointer:fine){
+    .gcard:hover{border-color:var(--ball);box-shadow:0 8px 22px var(--shadow),0 0 0 1px rgba(215,242,75,.2) inset;}
+  }
   .gcard .ji{font-size:clamp(30px,9vw,44px);line-height:1;}
   .gcard .nm{margin-top:8px;font-weight:700;font-size:clamp(14px,3.8vw,17px);}
   .gcard .ct{margin-top:4px;font-size:11px;color:var(--line-dim);}
@@ -114,7 +116,9 @@
   }
   .btn:active{transform:scale(.96);}
   .btn-ghost{background:transparent;border:1px solid var(--line-dim);color:var(--line-dim);}
-  .btn-ghost:hover{border-color:var(--ball);color:var(--ball);}
+  @media (hover:hover) and (pointer:fine){
+    .btn-ghost:hover{border-color:var(--ball);color:var(--ball);}
+  }
   .btn-ball{background:linear-gradient(135deg,var(--ball),#aac42f);color:#1a2705;box-shadow:0 5px 16px rgba(215,242,75,.3);}
   .btn-accent{background:linear-gradient(135deg,var(--accent),#d85f1e);color:#fff;box-shadow:0 5px 16px rgba(255,122,51,.35);}
   .btn-block{width:100%;}
@@ -177,7 +181,11 @@
     display:flex;align-items:center;justify-content:center;
   }
   .choice:active{transform:scale(.97);}
-  .choice:hover{border-color:var(--ball);}
+  .choice:focus{outline:none;}
+  .choice:focus-visible{outline:none;}
+  @media (hover:hover) and (pointer:fine){
+    .choice:hover{border-color:var(--ball);}
+  }
   .choice.ox-mark{font-size:clamp(26px,8vw,34px);font-weight:800;}
   .choice.correct{background:linear-gradient(135deg,#2f9a52,#247a41);border-color:var(--green-ok);color:#fff;}
   .choice.wrong{background:linear-gradient(135deg,#c64a22,#9c3415);border-color:var(--accent);color:#fff;}
@@ -716,6 +724,7 @@ function renderQuestion(){
 function pick(btn,isCorrect,q){
   const buttons=document.querySelectorAll('#choices .choice');
   buttons.forEach(b=>b.disabled=true);
+  if(btn&&btn.blur)btn.blur();
   const isOX=(typeof q.ox==='boolean');
   const correctText=isOX?(q.ox?'◯':'✕'):q.a;
 
