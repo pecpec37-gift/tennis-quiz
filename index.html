@@ -236,6 +236,7 @@
   .ro-ans b{display:block;margin-top:4px;font-size:17px;color:var(--ball);font-weight:700;line-height:1.5;}
   .ro-explain{margin-top:14px;padding:13px 15px;background:rgba(215,242,75,.08);border-left:3px solid var(--ball);border-radius:9px;font-size:13px;line-height:1.8;color:#eef7e6;text-align:left;}
   .ro-card .btn{margin-top:20px;width:100%;}
+  .ro-card .btn + .btn{margin-top:10px;}
 
   /* 花丸スタンプ表示 */
   .hanamaru{
@@ -360,9 +361,9 @@
       <ul>
         <li>各ジャンルから <b>ランダム10問</b> を出題（4択 ＋ ○× ミックス）</li>
         <li>問題文が流れたら <b>「回答する！」</b> ボタンを押す → 選択肢が出現！</li>
-        <li>制限時間は <b>60秒</b>。残った時間はそのまま <b>ボーナス点</b> に！</li>
+        <li>制限時間は <b>30秒</b>。残った時間はそのまま <b>ボーナス点</b> に！</li>
         <li>正解 → <b>+10点 ＆ 時間+5秒</b>（「正解！ +5秒」）</li>
-        <li>不正解 → <b>減点なし・時間−5秒</b>（正解を表示）</li>
+        <li>不正解 → <b>減点なし・時間−2秒</b>（正解を表示）</li>
         <li>正解率 <b>90%以上で🌸花丸スタンプ</b>（ポータルのランキングに反映）</li>
         <li>終了後は <b>間違えた問題を1問ずつ復習</b> できます</li>
       </ul>
@@ -382,7 +383,7 @@
   <section id="screen-quiz" class="screen">
     <div class="hud">
       <div class="pill score-pill"><span class="lab">得点</span><span id="hudScore">0</span></div>
-      <div class="pill time-pill" id="timePill"><span class="lab">残り</span><span id="hudTime">60</span>秒</div>
+      <div class="pill time-pill" id="timePill"><span class="lab">残り</span><span id="hudTime">30</span>秒</div>
     </div>
     <div class="timebar"><div class="fill" id="timeFill"></div></div>
     <div class="progress" id="progress">第 1 問 / 10</div>
@@ -482,6 +483,7 @@
     <div class="ro-ans" id="roAns"></div>
     <div class="ro-explain" id="roExplain"></div>
     <button class="btn btn-accent" onclick="nextQuestion()">次の問題へ ›</button>
+    <button class="btn btn-ghost" onclick="quitGame()">やめる（TOPへ戻る）</button>
   </div>
 </div>
 
@@ -495,7 +497,7 @@
 /* =========================================================
    テニスクイズ道場
    - 4択 + ○× ミックス / 10問ランダム
-   - 60秒 + 残り時間ボーナス / 正解+10点+5秒 / 不正解-5秒
+   - 30秒 + 残り時間ボーナス / 正解+10点+5秒 / 不正解 減点なし・-2秒
    - 表示時に選択肢シャッフル（正解位置の偏り防止）
    - ジャンル別ローカルランキング(localStorage)
    - 間違い復習 / canvas背景（テニスボール）の動的リサイズ
@@ -688,11 +690,13 @@ const ORDER = ["rules","technique","player","equipment","trivia","japan"];
 
 /* ---------- 状態 ---------- */
 let curGenre=null, questions=[], idx=0, score=0, correctCount=0;
-let timeLeft=60, timerId=null;
+let timeLeft=30, timerId=null;
 let wrongList=[];
 let reviewIdx=0, lastResult=null;
 let typingTimeout=null, fullQText='', answered=false, isOX=false;
-const TOTAL_Q=10, START_TIME=60, MAX_TIME=999;
+const TOTAL_Q=10, START_TIME=30, MAX_TIME=999;
+const TIME_BONUS=5;                      // 正解で +5秒
+const TIME_PENALTY=2;                    // 不正解で −2秒（減点なし）
 const TYPING_SPEED=120;                  // 1文字あたり120ミリ秒（早押しタイプ速度）
 const STAMP_GAME_ID='tennis-quiz';       // ポータル花丸スタンプ用ID（GitHubリポジトリ名と一致）
 const STORAGE_KEY='tennis_quiz_ranking_v1';
@@ -761,7 +765,7 @@ function updateTimeUI(){
   const pct=Math.max(0,Math.min(100,(timeLeft/START_TIME)*100));
   document.getElementById('timeFill').style.width=pct+'%';
   const pill=document.getElementById('timePill');
-  if(timeLeft<=15)pill.classList.add('warn');else pill.classList.remove('warn');
+  if(timeLeft<=10)pill.classList.add('warn');else pill.classList.remove('warn');
 }
 
 /* ---------- 出題（タイプライター＋早押し） ---------- */
@@ -849,20 +853,21 @@ function pick(btn,isCorrect,q){
 
   if(isCorrect){
     score+=10;correctCount++;
-    timeLeft=Math.min(MAX_TIME,timeLeft+5);
+    timeLeft=Math.min(MAX_TIME,timeLeft+TIME_BONUS);
     btn.classList.add('correct');
     document.getElementById('hudScore').textContent=score;
     updateTimeUI();
-    showToast(true,'✅ 正解！','+10点　時間 +5秒　⏱');
+    showToast(true,'✅ 正解！',`+10点　時間 +${TIME_BONUS}秒　⏱`);
   }else{
-    timeLeft=Math.max(0,timeLeft-5);
+    // 不正解：減点なし（scoreは変更しない）／時間のみ −2秒
+    timeLeft=Math.max(0,timeLeft-TIME_PENALTY);
     btn.classList.add('wrong');
     buttons.forEach(b=>{
       if(isOX){ if((b.textContent==='◯')===q.ox)b.classList.add('correct'); }
       else{ if(b.textContent===q.a)b.classList.add('correct'); }
     });
     updateTimeUI();
-    showToast(false,'❌ 不正解',`正解は「${isOX?(q.ox?'◯':'✕'):q.a}」（時間 −5秒）`);
+    showToast(false,'❌ 不正解',`−${TIME_PENALTY}秒（減点なし）　⏱`);
     wrongList.push({
       qhtml:q.q,
       yours:isOX?(q.ox?'✕':'◯'):btn.textContent,
@@ -893,6 +898,12 @@ function showResultOverlay(isCorrect,q,correctText){
   if(q.e){ex.style.display='block';ex.innerHTML='💡 '+escapeHtml(q.e);}
   else{ex.style.display='none';}
   ov.classList.add('show');
+}
+
+/* 「やめる」→ 途中終了してTOPメニューへ戻る */
+function quitGame(){
+  document.getElementById('resultOverlay').classList.remove('show');
+  goTitle();
 }
 
 /* 「次の問題へ」→ 押した瞬間にトーストを消す */
