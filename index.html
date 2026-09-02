@@ -336,6 +336,18 @@
     .genres{grid-template-columns:1fr 1fr;}
     .hud .pill{padding:7px 11px;}
   }
+
+  /* ===== 学習メニュー ===== */
+  .lcard::after{content:"クリックで学習 →";}
+  .study-intro{background:linear-gradient(135deg,rgba(215,242,75,.12),rgba(255,122,51,.07));border:1px solid rgba(215,242,75,.30);border-radius:14px;padding:16px 18px;margin:0 0 16px;font-size:14px;line-height:1.85;color:#e7f3e3;box-shadow:0 6px 22px var(--shadow);}
+  .study-genre-head{display:flex;align-items:center;gap:12px;justify-content:center;margin:8px 0 16px;text-align:center;}
+  .study-genre-head .ji{font-size:clamp(30px,8vw,44px);line-height:1;filter:drop-shadow(0 2px 10px rgba(215,242,75,.4));}
+  .study-genre-head .nm{font-weight:900;font-size:clamp(18px,5vw,24px);color:var(--line);}
+  .lpoint{background:rgba(255,255,255,.03);border:1px solid rgba(215,242,75,.14);border-left:4px solid var(--ball);border-radius:14px;padding:14px 16px;margin-bottom:12px;box-shadow:0 4px 16px var(--shadow);}
+  .lpoint .lh{display:flex;align-items:flex-start;gap:9px;font-weight:900;font-size:15px;color:var(--ball);line-height:1.5;}
+  .lpoint .lh .no{flex:none;min-width:25px;height:25px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#d85f1e);color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;font-weight:900;}
+  .lpoint .lb{margin-top:8px;font-size:14px;line-height:1.9;color:#e7f3e3;}
+  .study-actions{margin-top:18px;display:flex;flex-direction:column;gap:10px;}
 </style>
 </head>
 <body>
@@ -369,6 +381,8 @@
       </ul>
       <div class="tap-hint"><span>▶ ジャンルカードをクリックで即スタート！</span></div>
     </div>
+
+    <div style="text-align:center;margin:0 0 6px;"><button class="btn btn-accent" style="width:100%;max-width:520px;" onclick="openStudy()">📖 学習メニュー（概要と解説を読む）</button></div>
 
     <div class="section-label">ジャンルを選ぶ</div>
     <div class="genres" id="genreGrid"></div>
@@ -454,6 +468,32 @@
     <div class="footer-row" style="gap:10px;flex-wrap:wrap;">
       <button class="btn btn-ghost" onclick="goTitle()">🏠 トップへ戻る</button>
       <button class="btn btn-ghost" onclick="clearRanking()">🗑 この記録を消去</button>
+    </div>
+  </section>
+
+  <!-- ============ STUDY (list) ============ -->
+  <section id="screen-study" class="screen">
+    <div class="crest" style="margin-top:30px;">
+      <div class="seal">STUDY MENU</div>
+      <span class="logo-icon">📖</span>
+      <h1>テニスを学ぶ</h1>
+      <div class="subtitle">読んで学べる 概要と解説。ジャンルを選んで知識を深めよう。</div>
+    </div>
+    <div class="section-label">ジャンルを選ぶ</div>
+    <div class="genres" id="studyGrid"></div>
+    <div class="top-actions" style="grid-template-columns:1fr;margin-top:16px;">
+      <button class="btn btn-ghost" onclick="goTitle()">🏠 トップへ戻る</button>
+    </div>
+  </section>
+
+  <!-- ============ STUDY (detail) ============ -->
+  <section id="screen-studyDetail" class="screen">
+    <div class="study-genre-head"><span class="ji" id="studyJi">🎾</span><span class="nm" id="studyName">ジャンル</span></div>
+    <div id="studyBody"></div>
+    <div class="study-actions">
+      <button class="btn btn-ball" id="studyQuizBtn">🎯 このジャンルのクイズに挑戦</button>
+      <button class="btn btn-ghost" onclick="openStudy()">‹ 学習メニューへ戻る</button>
+      <button class="btn btn-ghost" onclick="goTitle()">🏠 トップへ戻る</button>
     </div>
   </section>
 
@@ -1100,6 +1140,7 @@ function showScreen(name){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('screen-'+name).classList.add('active');
   window.scrollTo(0,0);
+  if(typeof resizeCanvas==='function') requestAnimationFrame(resizeCanvas);
 }
 function goTitle(){clearInterval(timerId);clearTimeout(typingTimeout);hideToast();document.getElementById('resultOverlay').classList.remove('show');showScreen('title');}
 function retrySame(){if(curGenre)startGame(curGenre);}
@@ -1167,7 +1208,38 @@ window.addEventListener('resize',()=>{clearTimeout(resizeTO);resizeTO=setTimeout
 window.addEventListener('orientationchange',()=>setTimeout(resizeCanvas,200));
 
 /* ---------- 起動 ---------- */
+/* ---------- 学習メニュー ---------- */
+const STUDY = {"rules": {"intro": "コート・スコア・サービスなど、テニスの基本ルールを押さえましょう。独特のポイント表記や4大大会の違いを知ると、観戦も対戦も楽しくなります。", "points": [{"h": "ポイントの数え方", "b": "0＝ラブ、1点＝15、2点＝30、3点＝40と進み、4点先取でゲーム。40-40は「デュース」で、そこから2ポイント連取で勝ちです（ノーアド方式では次の1点で決着）。"}, {"h": "ゲーム・セット・マッチ", "b": "ポイントを集めてゲーム、ゲームを集めてセット、セットを集めてマッチ（試合）に。男子グランドスラムは5セットマッチ、女子は3セットマッチが基本です。"}, {"h": "タイブレーク", "b": "6-6でセットが並ぶとタイブレークへ。7ポイント先取（2点差が必要）でセットを取ります。最初のサーバーは1本、以降は2本ずつ交代でサーブします。"}, {"h": "サービスのルール", "b": "サービスは右側（デュースサイド）から開始し、左右交互に。1stがフォルトでも2ndを打てますが、2本ともフォルトは「ダブルフォルト」。フットフォルトもフォルト扱いです。"}, {"h": "レットとエース、ブレーク", "b": "ネットに触れて入ったサービスは「レット」でやり直し。レシーバーが触れられずに決まったサービスが「サービスエース」。相手のサービスゲームを奪うことを「ブレーク」といいます。"}, {"h": "コートの寸法", "b": "コート全長は23.77m、シングルスの横幅は8.23m、ダブルスは10.97m。ネットは中央91.4cm・ポスト部107cmで、中央がいちばん低くなっています。"}, {"h": "4大大会とサーフェス", "b": "全豪・全仏・ウインブルドン・全米がグランドスラム。全仏はクレー（ローランギャロス）、ウインブルドンは芝、全豪・全米はハード。主要サーフェスはハード・クレー・芝の3種類です。"}]}, "technique": {"intro": "ショットの種類と戦術を知ると、プレーの意図が見えてきます。回転・コース・ネットプレーなど、テニスの駆け引きを押さえましょう。", "points": [{"h": "基本のストローク", "b": "利き手側がフォアハンド、反対側がバックハンド。バウンドさせずネット付近で打つのが「ボレー」、バウンド直後をすくうのが難しい「ハーフボレー」です。"}, {"h": "回転（スピン）", "b": "順回転の「トップスピン」は高く弾んで相手を後退させ、逆回転の「スライス」は低く滑ってペースを乱します。ほぼ無回転の「フラット」は直線的で速い一方、コントロールが難しい球です。"}, {"h": "特殊なショット", "b": "ネット際に短く落とす「ドロップショット」、頭上を越す「ロブ」、頭上から打ち込む「スマッシュ」、バウンド前に叩く攻撃的な「ドライブボレー」など、状況で使い分けます。"}, {"h": "コースの呼び方", "b": "サイドライン沿いの直線が「ダウンザライン」、斜めに横断するのが「クロスコート」。ダブルスで相手の返球を横取りするのが「ポーチ」です。"}, {"h": "サービスの種類", "b": "速い「フラットサーブ」、大きく跳ねる「キック（トップスピン）サーブ」、横に曲がる「スライスサーブ」。2ndサービスを武器にできる選手は、大きな強みになります。"}, {"h": "ネットプレーと戦術", "b": "「サーブ＆ボレー」でネットに詰める、「アプローチショット」で前に出る布石を打つなど。ネットプレーではポジショニング（フットワーク）が最重要です。"}, {"h": "フットワークと主導権", "b": "相手が打つ瞬間に踏み切る「スプリットステップ」で初動を速く。サービス後の1球目で攻勢に立つ「ファーストストライク」など、先手を取る意識が鍵です。"}]}, "player": {"intro": "レジェンドたちの記録と、テニス史の名場面を押さえましょう。BIG3をはじめ、時代を築いた名選手を知ると観戦が一段と面白くなります。", "points": [{"h": "BIG3", "b": "フェデラー（スイス）、ナダル（スペイン）、ジョコビッチ（セルビア）の3人が「BIG3」。長年テニス界を支配しました。アンディ・マレーを加えて「BIG4」と呼ぶこともあります。"}, {"h": "フェデラーとナダル", "b": "フェデラーはウインブルドン最多8回優勝など、優雅なオールラウンダー。ナダルはフレンチオープンで前人未到の記録を重ねた「クレーの王者」です。"}, {"h": "ジョコビッチの記録", "b": "ジョコビッチは男子シングルスのグランドスラム最多優勝記録を持つなど、あらゆる面で歴代屈指の実績を誇ります。"}, {"h": "女子のレジェンド", "b": "セリーナ・ウィリアムズは女子シングルスのグランドスラム23勝。マルチナ・ナブラチロワ（チェコスロバキア出身、のち米国籍）も歴史的な名選手です。"}, {"h": "キャリアの称号", "b": "4大大会全制覇が「キャリア・グランドスラム」、それにオリンピック金メダルを加えると「キャリア・ゴールデンスラム」。アンドレ・アガシが達成者として有名です。"}, {"h": "記録のいろいろ", "b": "ピート・サンプラスは引退時にグランドスラム14勝。1ポイントも与えず6-0でセットを取る「ゴールデンセット」は、極めて稀な記録です。"}, {"h": "新世代の台頭", "b": "近年はカルロス・アルカラス、ヤニック・シナーら新世代がグランドスラムを制し、世代交代が進んでいます（最新の記録は公式サイトで確認を）。"}]}, "equipment": {"intro": "ラケット・ストリング・ボール・コートの知識は、プレーの土台。道具の特性を知ると、自分に合う選び方も見えてきます。", "points": [{"h": "ラケットの素材", "b": "現代のラケットはほぼカーボン（グラファイト）製で、軽量・高強度・振動吸収に優れます。面が大きい「オーバーサイズ」はスイートスポットが広く、ミスヒットに強いのが利点です。"}, {"h": "グリップ", "b": "グリップが細いと手首を使いやすく回転をかけやすい反面、安定性は落ちます。日本基準の「G2」はUSサイズの4と1/4インチ相当。オーバーグリップで滑り止めと感触を調整します。"}, {"h": "ストリング（ガット）", "b": "テンションが高いほどコントロール寄り、低いほどパワー寄り。牛や羊の腸から作る「ナチュラルガット」は打球感に優れ、「ポリエステル」は硬くスピン向きですが、腕への負担が大きめです。"}, {"h": "ボールの種類", "b": "内部に気体を封入した「プレッシャーボール」は弾みが良い一方で時間とともに落ち、中空の「ノンプレッシャーボール」は耐久性が高く弾みが長持ち。缶は通常3個入りです。"}, {"h": "ボールが黄色い理由", "b": "1972年に、テレビ放映での視認性を高めるため「オプティックイエロー」が採用されました。伝統ではなく“見やすさ”が理由です。"}, {"h": "コートのサーフェス", "b": "主要3種はハード（アクリル樹脂系）・クレー・芝。サーフェスごとに球足やバウンドが異なり、適したシューズのソール（クレーはヘリンボーン等）も変わります。"}, {"h": "コートの寸法", "b": "全長23.77m、シングルス幅8.23m、ダブルス幅10.97m。ダブルスは「アレー」が加わって広くなります。ネットの高さは中央で91.4cmです。"}]}, "trivia": {"intro": "語源や大会の歴史、判定技術など、知ると誰かに話したくなるテニス雑学を集めました。観戦がもっと楽しくなる小ネタです。", "points": [{"h": "テニスの起源", "b": "原型は中世フランスの「ジュー・ド・ポーム」（手のひらで打ち合う球戯）。近代テニスは1873年にウィングフィールドが考案し、19世紀に広まりました。"}, {"h": "言葉の語源", "b": "「テニス」はサービス前に「受けよ」と叫んだフランス語「tenez」が語源という説が有名。「ロブ」は「高く放り上げる」を意味する英語lobから来ています。"}, {"h": "「グランドスラム」の由来", "b": "全勝を意味するカードゲーム「ブリッジ」の用語から借用された言葉です。テニスでは4大大会を指します。"}, {"h": "判定技術（ホークアイ）", "b": "ボールの軌道を計算する「ホークアイ」は誤差が数mm程度。近年は、線審に代わる電子ラインコール（ELC）を導入する大会が増えています。"}, {"h": "国別対抗戦", "b": "男子は「デビスカップ」（1900年創設）、女子は「ビリー・ジーン・キング杯」（旧フェドカップ、2020年改称）。国を背負って戦う団体戦です。"}, {"h": "大会の豆知識", "b": "全豪は毎年1月にメルボルンで開催。会場は旧称フリンダーズ・パーク。ウインブルドンには、ほぼ白の服装規定という伝統があります。"}, {"h": "試合球の交換", "b": "グランドスラムでは、最初は7ゲーム後、以降は5ゲームごとに新しいボールへ交換します（大会により細部は異なります）。"}]}, "japan": {"intro": "錦織・大坂・伊達ら、日本テニスの歴史と話題を押さえましょう。世界に挑んだ選手たちの足跡は、観戦をより身近にしてくれます。", "points": [{"h": "錦織圭", "b": "2014年全米オープンで、アジア人男子として初めて4大大会シングルス決勝に進出（相手はマリン・チリッチ）。ATPファイナルズにも複数回出場した、日本男子のパイオニアです。"}, {"h": "大坂なおみ", "b": "2018年全米オープン決勝でセリーナ・ウィリアムズを破りグランドスラム初優勝。全豪・全米（いずれもハード）で計4回制しました。父はハイチ系、母は日本人です。"}, {"h": "伊達公子", "b": "1995年に世界ランキング4位（日本女子史上最高位）に到達。一度引退した後、30代後半〜40代でツアーに復帰した、驚異のレジェンドです。"}, {"h": "松岡修造", "b": "1995年ウインブルドンでベスト8に進出。日本男子の歴史的成績のひとつとして、長く記憶されています。"}, {"h": "育成と指導", "b": "錦織はフロリダのIMGアカデミーで育ち、元全仏王者マイケル・チャンをコーチに迎えて飛躍しました。世界で戦うための環境づくりも重要です。"}, {"h": "国内の舞台", "b": "国内最高峰は「全日本テニス選手権」で、東京・有明テニスの森が聖地。ATP500の「ジャパンオープン」（屋外ハード）も、国際大会として知られます。"}, {"h": "協会と歴史", "b": "日本テニス協会（JTA）は1922年設立。日本は1921年にデビスカップへ初参加するなど、アジアでも早くから国際舞台に立ってきました。"}]}};
+function buildStudyCards(){
+  const grid=document.getElementById('studyGrid');
+  grid.innerHTML='';
+  ORDER.forEach(key=>{
+    const g=QUIZ[key];
+    const n=(STUDY[key]&&STUDY[key].points)?STUDY[key].points.length:0;
+    const div=document.createElement('div');
+    div.className='gcard lcard';
+    div.onclick=()=>showStudyGenre(key);
+    div.innerHTML=`<div class="ji">${g.ji}</div><div class="nm">${g.name}</div><div class="ct">解説 ${n} トピック</div>`;
+    grid.appendChild(div);
+  });
+}
+function openStudy(){ showScreen('study'); }
+function showStudyGenre(key){
+  const g=QUIZ[key]; const d=STUDY[key];
+  document.getElementById('studyJi').textContent=g.ji;
+  document.getElementById('studyName').textContent=g.name;
+  let html='';
+  if(d&&d.intro) html+='<div class="study-intro">'+escapeHtml(d.intro)+'</div>';
+  if(d&&d.points) d.points.forEach((p,i)=>{
+    html+='<div class="lpoint"><div class="lh"><span class="no">'+(i+1)+'</span><span>'+escapeHtml(p.h)+'</span></div><div class="lb">'+escapeHtml(p.b)+'</div></div>';
+  });
+  document.getElementById('studyBody').innerHTML=html;
+  document.getElementById('studyQuizBtn').onclick=()=>openModal(key);
+  showScreen('studyDetail');
+}
+
 buildGenreCards();
+buildStudyCards();
 resizeCanvas();
 drawBg();
 document.getElementById('modalBg').addEventListener('click',e=>{if(e.target.id==='modalBg')closeModal();});
